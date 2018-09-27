@@ -1,0 +1,4 @@
+*.nvimlog
+*.md
+*.root
+*.pyc
