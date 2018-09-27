@@ -29,6 +29,7 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(10)
 )
 
+'''
 process.EventContentAnalyzer = cms.EDAnalyzer('EventContentAnalyzer',
   indentation = cms.untracked.string('++'),
   verbose = cms.untracked.bool(False),
@@ -38,6 +39,12 @@ process.EventContentAnalyzer = cms.EDAnalyzer('EventContentAnalyzer',
   getDataForModuleLabels = cms.untracked.vstring(),
   listContent = cms.untracked.bool(True)
 )
+'''
 
-process.path = cms.Path(process.EventContentAnalyzer)
+process.ntuples = cms.EDAnalyzer(
+  'TrackingNtuples',
+  pixelTracks = cms.InputTag('pixelTracks')
+  )
+
+process.path = cms.Path(process.ntuples)
 
