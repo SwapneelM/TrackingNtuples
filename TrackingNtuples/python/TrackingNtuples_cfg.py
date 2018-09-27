@@ -6,11 +6,11 @@ process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.MessageLogger = cms.Service(
     "MessageLogger",
     destinations   = cms.untracked.vstring(
-       'detailedInfo'
-         ,'critical'
+       'detailedInfo',
+       'critical'
     ),
     critical      = cms.untracked.PSet(
-                   , threshold = cms.untracked.string('ERROR') 
+                  threshold = cms.untracked.string('ERROR') 
     ),
     detailedInfo   = cms.untracked.PSet(
                   threshold = cms.untracked.string('DEBUG')
