@@ -76,8 +76,8 @@ class TrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  
 //
 TrackingNtuples::TrackingNtuples(const edm::ParameterSet& iConfig)
  :
-  tracksToken_(consumes<reco::TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("pixelTracks"))),
-  trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getUntrackedParameter<edm::InputTag>("pixelTracks")))
+  tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
+  trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
 
 {
    //now do what ever initialization is needed
@@ -104,9 +104,9 @@ TrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 {
    using namespace edm;
     int numhits = 0;
-    Handle<TrackCollection> tracks;
+    Handle<reco::TrackCollection> tracks;
     iEvent.getByToken(tracksToken_, tracks);
-    for(TrackCollection::const_iterator itTrack = tracks->begin();
+    for(reco::TrackCollection::const_iterator itTrack = tracks->begin();
         itTrack != tracks->end();
         ++itTrack) {
         numhits ++;
@@ -114,9 +114,9 @@ TrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
       // int charge = itTrack->charge();
     }
     numhits = 0;
-    Handle<TrackExtraCollection> trackExtra;
+    Handle<reco::TrackExtraCollection> trackExtra;
     iEvent.getByToken(trackExtraToken_, trackExtra);
-    for(TrackCollection::const_iterator itTrack = trackExtra->begin();
+    for(reco::TrackExtraCollection::const_iterator itTrack = trackExtra->begin();
         itTrack != trackExtra->end();
         ++itTrack) {
         numhits ++;
