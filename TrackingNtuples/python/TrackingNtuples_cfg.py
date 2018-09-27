@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("RECO")
+process = cms.Process("TrackingNtuples")
 
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.MessageLogger = cms.Service(
@@ -10,7 +10,7 @@ process.MessageLogger = cms.Service(
        'critical'
     ),
     critical      = cms.untracked.PSet(
-                  threshold = cms.untracked.string('ERROR') 
+                  threshold = cms.untracked.string('ERROR')
     ),
     detailedInfo   = cms.untracked.PSet(
                   threshold = cms.untracked.string('DEBUG')
