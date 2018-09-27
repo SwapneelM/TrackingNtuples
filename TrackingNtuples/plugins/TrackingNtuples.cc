@@ -28,9 +28,9 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
- #include "FWCore/Utilities/interface/InputTag.h"
- #include "DataFormats/TrackReco/interface/Track.h"
- #include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
 //
 // class declaration
 //
@@ -40,8 +40,10 @@
 // from  edm::one::EDAnalyzer<>
 // This will improve performance in multithreaded jobs.
 
-
-using reco::TrackCollection;
+//
+// Custom: Adding Message Logging Capabilities
+//
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 class TrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
@@ -57,7 +59,8 @@ class TrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  
       virtual void endJob() override;
 
       // ----------member data ---------------------------
-      edm::EDGetTokenT<TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
+      edm::EDGetTokenT<reco::TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
+      edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;  //used to select extra track information to read 
 };
 
 //
@@ -73,7 +76,8 @@ class TrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  
 //
 TrackingNtuples::TrackingNtuples(const edm::ParameterSet& iConfig)
  :
-  tracksToken_(consumes<TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("tracks")))
+  tracksToken_(consumes<reco::TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("pixelTracks"))),
+  trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getUntrackedParameter<edm::InputTag>("pixelTracks")))
 
 {
    //now do what ever initialization is needed
@@ -84,7 +88,7 @@ TrackingNtuples::TrackingNtuples(const edm::ParameterSet& iConfig)
 TrackingNtuples::~TrackingNtuples()
 {
 
-   // do anything here that needs to be done at desctruction time
+   // do anything here that needs to be done at destruction time
    // (e.g. close files, deallocate resources etc.)
 
 }
@@ -99,17 +103,27 @@ void
 TrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
-
+    int numhits = 0;
     Handle<TrackCollection> tracks;
     iEvent.getByToken(tracksToken_, tracks);
     for(TrackCollection::const_iterator itTrack = tracks->begin();
         itTrack != tracks->end();
         ++itTrack) {
-      // do something with track parameters, e.g, plot the charge.
+        numhits ++;
+        LogDebug("TrackFinder") << "Found tracks: " << numhits << " hits\n";       // do something with track parameters, e.g, plot the charge.
       // int charge = itTrack->charge();
     }
+    numhits = 0;
+    Handle<TrackExtraCollection> trackExtra;
+    iEvent.getByToken(trackExtraToken_, trackExtra);
+    for(TrackCollection::const_iterator itTrack = trackExtra->begin();
+        itTrack != trackExtra->end();
+        ++itTrack) {
+        numhits ++;
+        LogDebug("TrackFinder") << "Found extra info on " << numhits << " tracks\n";
+    }
 
-#ifdef THIS_IS_AN_EVENT_EXAMPLE
+/* #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
    iEvent.getByLabel("example",pIn);
 #endif
@@ -117,7 +131,8 @@ TrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 #ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
    ESHandle<SetupData> pSetup;
    iSetup.get<SetupRecord>().get(pSetup);
-#endif
+#endif */
+
 }
 
 
@@ -139,7 +154,7 @@ TrackingNtuples::fillDescriptions(edm::ConfigurationDescriptions& descriptions) 
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
-  desc.setUnknown();
+  desc.addUntracked<edm::InputTag>("pixelTracks");
   descriptions.addDefault(desc);
 
   //Specify that only 'tracks' is allowed
