@@ -9,7 +9,7 @@ process.MessageLogger = cms.Service(
        'detailedInfo'
          ,'critical'
     ),
-    ,critical      = cms.untracked.PSet(
+    critical      = cms.untracked.PSet(
                    , threshold = cms.untracked.string('ERROR') 
     ),
     detailedInfo   = cms.untracked.PSet(
