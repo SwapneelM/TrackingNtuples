@@ -31,6 +31,14 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
+
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "TMath.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1D.h"
+#include "TRandom3.h"
+
 //
 // class declaration
 //
@@ -100,7 +108,9 @@ void
 MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
+    // Set a counter to check the number of hits
     int numhits = 0;
+    
     Handle<reco::TrackCollection> tracks;
     iEvent.getByToken(tracksToken_, tracks);
     for(reco::TrackCollection::const_iterator itTrack = tracks->begin();
@@ -108,9 +118,11 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         ++itTrack) {
         numhits ++;
         LogDebug("TrackFinder") << "Found tracks: " << numhits << " hits\n";       // do something with track parameters, e.g, plot the charge.
-      // int charge = itTrack->charge();
     }
+
+    // Reset number of hits to zero
     numhits = 0;
+    
     Handle<reco::TrackExtraCollection> trackExtra;
     iEvent.getByToken(trackExtraToken_, trackExtra);
     for(reco::TrackExtraCollection::const_iterator itTrack = trackExtra->begin();
