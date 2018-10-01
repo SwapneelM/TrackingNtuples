@@ -1,7 +1,8 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("TrackingNtuples")
+process = cms.Process("SOMETHING")
 
+'''
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.MessageLogger = cms.Service(
     "MessageLogger",
@@ -17,6 +18,7 @@ process.MessageLogger = cms.Service(
     ),
     debugModules  = cms.untracked.vstring("*")
 )
+'''
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
@@ -42,7 +44,7 @@ process.EventContentAnalyzer = cms.EDAnalyzer('EventContentAnalyzer',
 '''
 
 process.ntuples = cms.EDAnalyzer(
-  'TrackingNtuples',
+  'MyTrackingNtuples',
   pixelTracks = cms.InputTag('pixelTracks')
   )
 

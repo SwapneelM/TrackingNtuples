@@ -45,13 +45,10 @@
 //
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-class TrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
-      explicit TrackingNtuples(const edm::ParameterSet&);
-      ~TrackingNtuples();
-
-      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-
+      explicit MyTrackingNtuples(const edm::ParameterSet&);
+      ~MyTrackingNtuples();
 
    private:
       virtual void beginJob() override;
@@ -74,7 +71,7 @@ class TrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  
 //
 // constructors and destructor
 //
-TrackingNtuples::TrackingNtuples(const edm::ParameterSet& iConfig)
+MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
   tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
@@ -85,7 +82,7 @@ TrackingNtuples::TrackingNtuples(const edm::ParameterSet& iConfig)
 }
 
 
-TrackingNtuples::~TrackingNtuples()
+MyTrackingNtuples::~MyTrackingNtuples()
 {
 
    // do anything here that needs to be done at destruction time
@@ -100,7 +97,7 @@ TrackingNtuples::~TrackingNtuples()
 
 // ------------ method called for each event  ------------
 void
-TrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
     int numhits = 0;
@@ -138,31 +135,17 @@ TrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
 // ------------ method called once each job just before starting event loop  ------------
 void
-TrackingNtuples::beginJob()
+MyTrackingNtuples::beginJob()
 {
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void
-TrackingNtuples::endJob()
+MyTrackingNtuples::endJob()
 {
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
-void
-TrackingNtuples::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
-  edm::ParameterSetDescription desc;
-  desc.addUntracked<edm::InputTag>("pixelTracks");
-  descriptions.addDefault(desc);
-
-  //Specify that only 'tracks' is allowed
-  //To use, remove the default given above and uncomment below
-  //ParameterSetDescription desc;
-  //desc.addUntracked<edm::InputTag>("tracks","ctfWithMaterialTracks");
-  //descriptions.addDefault(desc);
-}
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(TrackingNtuples);
+DEFINE_FWK_MODULE(MyTrackingNtuples);
