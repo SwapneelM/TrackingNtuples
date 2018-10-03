@@ -20,16 +20,25 @@ process.MessageLogger = cms.Service(
 )
 '''
 
+process.maxLuminosityBlocks = cms.untracked.PSet(
+            input = cms.untracked.int32(-1)
+)
+
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-#        'file:/data/ml/smehta/cmssw-hep/CMSSW_10_2_4_Patatrack/src/10824.5_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2018_GenSimFull+DigiFull_2018+RecoFull_pixelTrackingOnly_2018+HARVESTFull_pixelTrackingOnly_2018/step2.root',
+        #'file:/data/ml/smehta/cmssw-hep/CMSSW_10_2_4_Patatrack/src/10824.5_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2018_GenSimFull+DigiFull_2018+RecoFull_pixelTrackingOnly_2018+HARVESTFull_pixelTrackingOnly_2018/step2.root',
         'file:/data/ml/smehta/cmssw-hep/CMSSW_10_2_4_Patatrack/src/10824.5_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2018_GenSimFull+DigiFull_2018+RecoFull_pixelTrackingOnly_2018+HARVESTFull_pixelTrackingOnly_2018/step3.root'
     )
+)
+
+process.options = cms.untracked.PSet(
+	SkipEvent	= cms.untracked.vstring('ProductNotFound')
 )
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(-1)
 )
+
 
 '''
 process.EventContentAnalyzer = cms.EDAnalyzer('EventContentAnalyzer',
@@ -45,8 +54,8 @@ process.EventContentAnalyzer = cms.EDAnalyzer('EventContentAnalyzer',
 
 process.ntuples = cms.EDAnalyzer(
   'MyTrackingNtuples',
-  pixelTracks = cms.InputTag('pixelTracks')
-  )
+  pixelTracks = cms.InputTag('pixelTracks'),
+)
 
 process.path = cms.Path(process.ntuples)
 
