@@ -29,7 +29,6 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/Utilities/interface/InputTag.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 
@@ -37,12 +36,12 @@
 // the template argument to the base class so the class inherits
 // from  edm::one::EDAnalyzer<>
 // This will improve performance in multithreaded jobs.
+#include "FWCore/Utilities/interface/InputTag.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
-#include "TMath.h"
-#include "TFile.h"
 #include "TTree.h"
-#include "TH1D.h"
-#include "TRandom3.h"
+#include "TFile.h"
 //
 // Adding Message Logging Capabilities
 //
@@ -51,9 +50,6 @@
 //
 // class declaration
 //
-using namespace edm;
-using namespace std;
-using namespace reco;
 
 class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
@@ -66,13 +62,13 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       virtual void endJob() override;
 
       // ----------member data ---------------------------
+      int nevent, nlumi, nrun;
+
       edm::EDGetTokenT<reco::TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
       edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;  //used to select extra track information to read 
       
       edm::Service<TFileService> fs;
       TTree *tree_;
-      TRandom3 rand;
-
 };
 
 //
@@ -88,11 +84,15 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
-  tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
+  tree(nullptr), tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
 
 {
    //now do what ever initialization is needed
+  tree = fs->make<TTree>("tree","tree");
+  tree->Branch("nevent",&nevent,"nevent/I");
+  tree->Branch("nlumi",&nlumi,"nlumi/I");
+  tree->Branch("nrun",&nrun,"nrun/I");
 
 }
 
@@ -114,7 +114,14 @@ MyTrackingNtuples::~MyTrackingNtuples()
 void
 MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-   using namespace edm;
+    using namespace edm;
+    using namespace std;
+    using namespace reco;
+
+    nevent=iEvent.id().event();
+    nlumi=iEvent.id().luminosityBlock();
+    nrun=iEvent.id().run();
+
     // Set a counter to check the number of hits
     int numhits = 0;
     
@@ -139,16 +146,26 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         LogDebug("TrackFinder") << "Found extra info on " << numhits << " tracks\n";
     }
 
-/* #ifdef THIS_IS_AN_EVENT_EXAMPLE
-   Handle<ExampleData> pIn;
-   iEvent.getByLabel("example",pIn);
-#endif
+    tree=fs->make<TTree>("tree","tree");
+    tree->Branch("nevent",&nevent,"nevent/I");
+    tree->Branch("nlumi",&nlumi,"nlumi/I");
+    tree->Branch("nrun",&nrun,"nrun/I");
 
-#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-   ESHandle<SetupData> pSetup;
-   iSetup.get<SetupRecord>().get(pSetup);
-#endif */
+    tree->Fill();
 
+    TFile outputFile ("outputFile.root","RECREATE");
+    tree.Write()
+    outputFile.ls();
+    outputFile.Close();
+    /* #ifdef THIS_IS_AN_EVENT_EXAMPLE
+       Handle<ExampleData> pIn;
+       iEvent.getByLabel("example",pIn);
+    #endif
+
+    #ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
+       ESHandle<SetupData> pSetup;
+       iSetup.get<SetupRecord>().get(pSetup);
+    #endif */
 }
 
 
@@ -160,18 +177,13 @@ MyTrackingNtuples::beginJob()
         throw edm::Exception( edm::errors::Configuration,
                 "TFile Service is not registered in cfg file" );
     }
-    tree_=(fs->make<TTree>("tree" ,"tree" ));
-
-//    for(auto& m:modules_)
-//        m->initBranches(tree_);
-
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void
 MyTrackingNtuples::endJob()
 {
-  cout << ">> saving histograms" << endl;
+    cout << ">> Ending job." << endl;
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
