@@ -19,6 +19,7 @@
 
 // system include files
 #include <memory>
+#include <utility>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -32,26 +33,27 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 
+// If the analyzer does not use TFileService, please remove
+// the template argument to the base class so the class inherits
+// from  edm::one::EDAnalyzer<>
+// This will improve performance in multithreaded jobs.
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TMath.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1D.h"
 #include "TRandom3.h"
+//
+// Adding Message Logging Capabilities
+//
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 //
 // class declaration
 //
-
-// If the analyzer does not use TFileService, please remove
-// the template argument to the base class so the class inherits
-// from  edm::one::EDAnalyzer<>
-// This will improve performance in multithreaded jobs.
-
-//
-// Custom: Adding Message Logging Capabilities
-//
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
+using namespace edm;
+using namespace std;
+using namespace reco;
 
 class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
@@ -66,6 +68,11 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       // ----------member data ---------------------------
       edm::EDGetTokenT<reco::TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
       edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;  //used to select extra track information to read 
+      
+      edm::Service<TFileService> fs;
+      TTree *tree_;
+      TRandom3 rand;
+
 };
 
 //
@@ -149,12 +156,22 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 void
 MyTrackingNtuples::beginJob()
 {
+  if( !fs ){
+        throw edm::Exception( edm::errors::Configuration,
+                "TFile Service is not registered in cfg file" );
+    }
+    tree_=(fs->make<TTree>("tree" ,"tree" ));
+
+//    for(auto& m:modules_)
+//        m->initBranches(tree_);
+
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void
 MyTrackingNtuples::endJob()
 {
+  cout << ">> saving histograms" << endl;
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
