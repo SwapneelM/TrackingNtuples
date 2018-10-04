@@ -64,12 +64,15 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       virtual void endJob() override;
 
       // ----------member data ---------------------------
+      int nevent_ = 0;
+      int nlumi_ = 0;
+      int nrun_ = 0;
 
       edm::EDGetTokenT<reco::TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
       edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;  //used to select extra track information to read 
       
-      edm::Service<TFileService> fs;
-      TTree *tree;
+      edm::Service<TFileService> fs_;
+      TTree *tree_;
 };
 
 //
@@ -85,14 +88,15 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
+  tree_(nullptr),
   tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
 {
    //now do what ever initialization is needed
-  tree = fs->make<TTree>("tree","tree");
-  tree->Branch("nevent",&nevent,"nevent/I");
-  tree->Branch("nlumi",&nlumi,"nlumi/I");
-  tree->Branch("nrun",&nrun,"nrun/I");
+  tree_ = fs->make<TTree>("tree","tree");
+  tree_->Branch("nevent",&nevent_,"nevent/I");
+  tree_->Branch("nlumi",&nlumi_,"nlumi/I");
+  tree_->Branch("nrun",&nrun_,"nrun/I");
 
 }
 
@@ -118,35 +122,37 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     using namespace std;
     using namespace reco;
 
-    nevent=iEvent.id().event();
-    nlumi=iEvent.id().luminosityBlock();
-    nrun=iEvent.id().run();
+    nevent_=iEvent.id().event();
+    nlumi_=iEvent.id().luminosityBlock();
+    nrun_=iEvent.id().run();
 
     // Set a counter to check the number of hits
-    int numhits = 0;
+    int numhits_ = 0;
     
-    Handle<reco::TrackCollection> tracks;
-    iEvent.getByToken(tracksToken_, tracks);
-    for(reco::TrackCollection::const_iterator itTrack = tracks->begin();
-        itTrack != tracks->end();
-        ++itTrack) {
-        numhits ++;
-        LogDebug("TrackFinder") << "Found tracks: " << numhits << " hits\n";       // do something with track parameters, e.g, plot the charge.
+    Handle<reco::TrackCollection> tracks_;
+    iEvent.getByToken(tracksToken_, tracks_);
+
+    for(reco::TrackCollection::const_iterator itTrack_ = tracks_->begin();
+        itTrack_ != tracks_->end(); 
+        ++itTrack_) {
+        numhits_ ++;
+        LogDebug("TrackFinder") << "Found tracks: " << numhits_ << " hits\n";       // do something with track parameters, e.g, plot the charge.
     }
 
     // Reset number of hits to zero
-    numhits = 0;
+    numhits_ = 0;
     
-    Handle<reco::TrackExtraCollection> trackExtra;
-    iEvent.getByToken(trackExtraToken_, trackExtra);
-    for(reco::TrackExtraCollection::const_iterator itTrack = trackExtra->begin();
-        itTrack != trackExtra->end();
-        ++itTrack) {
-        numhits ++;
-        LogDebug("TrackFinder") << "Found extra info on " << numhits << " tracks\n";
+    Handle<reco::TrackExtraCollection> trackExtra_;
+    iEvent.getByToken(trackExtraToken_, trackExtra_);
+
+    for(reco::TrackExtraCollection::const_iterator itTrackExtra_ = trackExtra_->begin();
+        itTrackExtra_ != trackExtra_->end();
+        ++itTrackExtra_) {
+        numhits_ ++;
+        LogDebug("TrackExtraFinder") << "Found extra info on " << numhits_ << " tracks\n";
     }
 
-    tree->Fill();
+    tree_->Fill();
 
     /* #ifdef THIS_IS_AN_EVENT_EXAMPLE
        Handle<ExampleData> pIn;
@@ -164,7 +170,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 void
 MyTrackingNtuples::beginJob()
 {
-  if( !fs ){
+  if( !fs_ ){
         throw edm::Exception( edm::errors::Configuration,
                 "TFile Service is not registered in cfg file" );
     }
@@ -174,6 +180,7 @@ MyTrackingNtuples::beginJob()
 void
 MyTrackingNtuples::endJob()
 {
+    tree_->Write();
     std::cout << ">> Ending job." << std::endl;
 }
 
