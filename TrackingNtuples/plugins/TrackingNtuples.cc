@@ -53,22 +53,23 @@
 
 class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
-      explicit MyTrackingNtuples(const edm::ParameterSet&);
+      explicit MyTrackingNtuples(const edm::ParameterSet&){
+          usesResource("TFileService");
+      };
       ~MyTrackingNtuples();
-
+   
    private:
       virtual void beginJob() override;
       virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
       virtual void endJob() override;
 
       // ----------member data ---------------------------
-      int nevent, nlumi, nrun;
 
       edm::EDGetTokenT<reco::TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
       edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;  //used to select extra track information to read 
       
       edm::Service<TFileService> fs;
-      TTree *tree_;
+      TTree *tree;
 };
 
 //
@@ -84,9 +85,8 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
-  tree(nullptr), tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
+  tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
-
 {
    //now do what ever initialization is needed
   tree = fs->make<TTree>("tree","tree");
@@ -146,17 +146,8 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         LogDebug("TrackFinder") << "Found extra info on " << numhits << " tracks\n";
     }
 
-    tree=fs->make<TTree>("tree","tree");
-    tree->Branch("nevent",&nevent,"nevent/I");
-    tree->Branch("nlumi",&nlumi,"nlumi/I");
-    tree->Branch("nrun",&nrun,"nrun/I");
-
     tree->Fill();
 
-    TFile outputFile ("outputFile.root","RECREATE");
-    tree.Write()
-    outputFile.ls();
-    outputFile.Close();
     /* #ifdef THIS_IS_AN_EVENT_EXAMPLE
        Handle<ExampleData> pIn;
        iEvent.getByLabel("example",pIn);
@@ -183,7 +174,7 @@ MyTrackingNtuples::beginJob()
 void
 MyTrackingNtuples::endJob()
 {
-    cout << ">> Ending job." << endl;
+    std::cout << ">> Ending job." << std::endl;
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
