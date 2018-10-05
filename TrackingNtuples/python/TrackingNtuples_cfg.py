@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("SOMETHING")
+process = cms.Process("TrackingNTuples")
 
 '''
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
@@ -51,6 +51,12 @@ process.EventContentAnalyzer = cms.EDAnalyzer('EventContentAnalyzer',
   listContent = cms.untracked.bool(True)
 )
 '''
+
+process.TFileService=cms.Service(
+    'TFileService',
+    fileName=cms.string('outfile.root')
+    )
+
 
 process.ntuples = cms.EDAnalyzer(
   'MyTrackingNtuples',
