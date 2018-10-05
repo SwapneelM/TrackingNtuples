@@ -4,6 +4,12 @@ process = cms.Process("TrackingNTuples")
 
 '''
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
+process.MessageLogger.cerr.threshold = 'INFO'
+
+process.MessageLogger.cerr.INFO = cms.untracked.PSet(
+    limit = cms.untracked.int32(-1)
+)
+
 process.MessageLogger = cms.Service(
     "MessageLogger",
     destinations   = cms.untracked.vstring(
@@ -14,10 +20,11 @@ process.MessageLogger = cms.Service(
                   threshold = cms.untracked.string('ERROR')
     ),
     detailedInfo   = cms.untracked.PSet(
-                  threshold = cms.untracked.string('DEBUG')
-    ),
-    debugModules  = cms.untracked.vstring("*")
+                  threshold = cms.untracked.string('INFO')
+    )
 )
+
+process.MessageLogger.categories.append('Tracks', 'TrackExtra')
 '''
 
 process.maxLuminosityBlocks = cms.untracked.PSet(
@@ -56,7 +63,6 @@ process.TFileService=cms.Service(
     'TFileService',
     fileName=cms.string('outfile.root')
     )
-
 
 process.ntuples = cms.EDAnalyzer(
   'MyTrackingNtuples',

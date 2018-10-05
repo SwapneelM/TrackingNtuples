@@ -32,6 +32,14 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 
+// Including TrackReco/TrackBase and related files to retrieve the covariance matrix
+// and the parameter set and store it in corresponding branches of the 
+// output ROOT tree
+#include "Rtypes.h"
+#include "DataFormats/TrackReco/interface/TrackBase.h"
+#include "DataFormats/TrackReco/interface/fillCovariance.h"
+#include <algorithm>
+
 // If the analyzer does not use TFileService, please remove
 // the template argument to the base class so the class inherits
 // from  edm::one::EDAnalyzer<>
@@ -71,6 +79,12 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       
       edm::Service<TFileService> fs_;
       TTree *tree_;
+
+      std::vector<float> jet_eta_;
+      std::vector<float> jet_phi_;
+      std::vector<float> qoverp_;
+      reco::TrackBase::CovarianceMatrix covariance_mat_;
+      reco::TrackBase::ParameterSet track_parameters_;
 };
 
 //
@@ -93,9 +107,6 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
 
     //now do what ever initialization is needed
     tree_ = fs_->make<TTree>("tree","tree");
-    tree_->Branch("nevent",&nevent_,"nevent/I");
-    tree_->Branch("nlumi",&nlumi_,"nlumi/I");
-    tree_->Branch("nrun",&nrun_,"nrun/I");
 
 }
 
@@ -125,31 +136,59 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     nlumi_=iEvent.id().luminosityBlock();
     nrun_=iEvent.id().run();
 
-    // Set a counter to check the number of hits
-    int numhits_ = 0;
+    std::cout << "Event Number: " << nevent_ << std::endl;
+    std::cout << "Luminosity Block: " << nlumi_ << std::endl;
+    std::cout << "Run Number: " << nrun_ << std::endl;
     
+    // Set a counter to check the number of hits
+    int numtracks_ = 0;
+    
+    // Get the information from the pixeltrack branches
     Handle<reco::TrackCollection> tracks_;
     iEvent.getByToken(tracksToken_, tracks_);
 
     for(reco::TrackCollection::const_iterator itTrack_ = tracks_->begin();
         itTrack_ != tracks_->end(); 
         ++itTrack_) {
-        numhits_ ++;
-        LogDebug("TrackFinder") << "Found tracks: " << numhits_ << " hits\n";       // do something with track parameters, e.g, plot the charge.
+
+        reco::TrackCollection trk_ = *itTrack_;
+
+        reco::TrackBase::CovarianceMatrix covariance_mat_ = trk_.covariance();
+        reco::TrackBase::ParameterSet track_parameters_ = trk_.parameters();
+
+        std::cout << "Track Covariance and Parameter Set found." << std::endl;
+        //std::cout << "Track Phi" << trk_.phi();
+
+        numtracks_ ++;
+        LogInfo("Tracks") << "Found " << numtracks_ << " tracks\n";       // do something with track parameters, e.g, plot the charge.
     }
 
-    // Reset number of hits to zero
-    numhits_ = 0;
+    /*
+    // Print the collected parameters from the parameter set
+    for (int i_=0; i_<trk_.size(); i_++) {
+      std::cout << ' ' << myvector.at(i_);
+    }
+    std::cout << '\n';
+    */
     
+    // Reset number of hits to zero
+    numtracks_ = 0;
+    
+    // Get the extra information from the pixeltrack branches
     Handle<reco::TrackExtraCollection> trackExtra_;
     iEvent.getByToken(trackExtraToken_, trackExtra_);
 
     for(reco::TrackExtraCollection::const_iterator itTrackExtra_ = trackExtra_->begin();
         itTrackExtra_ != trackExtra_->end();
         ++itTrackExtra_) {
-        numhits_ ++;
-        LogDebug("TrackExtraFinder") << "Found extra info on " << numhits_ << " tracks\n";
+        numtracks_ ++;
+        LogInfo("TrackExtra") << "Found extra info on " << numtracks_ << " tracks\n";
     }
+
+    std::cout << "Run in TrackExtra section " << numtracks_ << "times." << std::endl;
+
+    // TODO: Print extra information about the tracks
+
 
     tree_->Fill();
 
@@ -179,6 +218,11 @@ MyTrackingNtuples::beginJob()
 void
 MyTrackingNtuples::endJob()
 {
+    
+    tree_->Branch("nevent", &nevent_, "nevent/I");
+    tree_->Branch("nlumi", &nlumi_, "nlumi/I");
+    tree_->Branch("nrun", &nrun_, "nrun/I");
+
     std::cout << ">> Ending job." << std::endl;
 }
 
