@@ -3,4 +3,5 @@
 *.root
 *.pyc
 *.log
+*.txt
 *.DS_Store
