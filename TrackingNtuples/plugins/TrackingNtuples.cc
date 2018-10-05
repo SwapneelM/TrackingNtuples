@@ -53,9 +53,7 @@
 
 class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
-      explicit MyTrackingNtuples(const edm::ParameterSet&){
-          usesResource("TFileService");
-      };
+      explicit MyTrackingNtuples(const edm::ParameterSet&);
       ~MyTrackingNtuples();
    
    private:
@@ -88,24 +86,25 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
-  tree_(nullptr),
   tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
 {
-   //now do what ever initialization is needed
-  tree_ = fs->make<TTree>("tree","tree");
-  tree_->Branch("nevent",&nevent_,"nevent/I");
-  tree_->Branch("nlumi",&nlumi_,"nlumi/I");
-  tree_->Branch("nrun",&nrun_,"nrun/I");
+    usesResource("TFileService");
+
+    //now do what ever initialization is needed
+    tree_ = fs_->make<TTree>("tree","tree");
+    tree_->Branch("nevent",&nevent_,"nevent/I");
+    tree_->Branch("nlumi",&nlumi_,"nlumi/I");
+    tree_->Branch("nrun",&nrun_,"nrun/I");
 
 }
 
 
 MyTrackingNtuples::~MyTrackingNtuples()
 {
-
-   // do anything here that needs to be done at destruction time
-   // (e.g. close files, deallocate resources etc.)
+    // do anything here that needs to be done at destruction time
+    // (e.g. close files, deallocate resources etc.)
+    tree_->Write();
 
 }
 
@@ -180,7 +179,6 @@ MyTrackingNtuples::beginJob()
 void
 MyTrackingNtuples::endJob()
 {
-    tree_->Write();
     std::cout << ">> Ending job." << std::endl;
 }
 
