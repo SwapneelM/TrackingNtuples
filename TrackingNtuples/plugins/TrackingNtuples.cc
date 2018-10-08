@@ -84,8 +84,13 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> jet_eta_;
       std::vector<double> jet_phi_;
       std::vector<double> qoverp_;
+      std::vector<double> dxy_;
+      std::vector<double> dsz_;
+
       reco::TrackBase::CovarianceMatrix covariance_mat_;
       reco::TrackBase::ParameterVector track_parameters_;
+
+      std::vector<double> reshaped_cov_mat_;
 
       struct customEventData {  
         std::vector<double> jet_eta_;
@@ -179,19 +184,31 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         jet_eta_.push_back(trk_.eta());
         jet_phi_.push_back(trk_.phi());
         qoverp_.push_back(trk_.qoverp());
-        std::cout << 'Jet Data: ' << trk_.eta() << trk_.phi() << trk_.qoverp_() << endl;
-        // covariance_mat_ = trk_.covariance();
+        std::cout << "Jet Data: " << trk_.eta() << trk_.phi() << trk_.qoverp_() << endl;
+        covariance_mat_ = trk_.covariance();
         track_parameters_ = trk_.parameters();
 
-        // TODO #1: Print the covariance matrix and 
-        // figure out how to store it in the TTree
+        // TODO #1: Figure out how to store covariance
+        // matrix in the TTree - Ntuples?
 
+        std::cout << "Track Parameters: "
         // Print the collected parameters from the parameter set
         for (int i_=0; i_ < track_parameters_.kSize; i_++) {
-            std::cout << 'Track Param: ' << track_parameters_.At(i_) << std::endl;
+            std::cout << track_parameters_.At(i_);
         }
-        std::cout << "Track Covariance and Parameter Set found ?" << std::endl;
-        //std::cout << "Track Phi" << trk_.phi();
+
+        // Print the covariance matrix and reshape it 
+        // to store it in a fixed-dimension array of doubles
+        std::cout << "Covariance Matrix: " << std::endl;
+        for (int i_=0; i_ < covariance_mat_.kSize; i_++) {
+          for (int j_=0; j_ <= i_; j_++) {
+            std::cout << covariance_mat_[i_][j_] << " | ";
+            reshaped_cov_mat_.push_back(covariance_mat_[i_][j_])
+          }
+          std::endl;
+        }
+
+        //std::cout << "Track Covariance and Parameter Set found" << std::endl;
 
         numtracks_ ++;
         LogInfo("Tracks") << "Found " << numtracks_ << " tracks\n";       // do something with track parameters, e.g, plot the charge.
