@@ -179,7 +179,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         jet_eta_.push_back(trk_.eta());
         jet_phi_.push_back(trk_.phi());
         qoverp_.push_back(trk_.qoverp());
-        std::cout << 'Jet Data: ' << trk_.eta() << trk_.phi() << trk_.qoverp_() << endl;
+        std::cout << "Jet Data: " << trk_.eta() << trk_.phi() << trk_.qoverp() << endl;
         // covariance_mat_ = trk_.covariance();
         track_parameters_ = trk_.parameters();
 
@@ -188,7 +188,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 
         // Print the collected parameters from the parameter set
         for (int i_=0; i_ < track_parameters_.kSize; i_++) {
-            std::cout << 'Track Param: ' << track_parameters_.At(i_) << std::endl;
+            std::cout << "Track Param: " << track_parameters_.At(i_) << std::endl;
         }
         std::cout << "Track Covariance and Parameter Set found ?" << std::endl;
         //std::cout << "Track Phi" << trk_.phi();
