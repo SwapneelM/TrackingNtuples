@@ -185,6 +185,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         jet_phi_.push_back(trk_.phi());
         qoverp_.push_back(trk_.qoverp());
         std::cout << "Jet Data: " << trk_.eta() << trk_.phi() << trk_.qoverp_() << endl;
+        
         covariance_mat_ = trk_.covariance();
         track_parameters_ = trk_.parameters();
 
