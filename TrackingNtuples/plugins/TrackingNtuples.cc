@@ -48,6 +48,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "TROOT.h"
 #include "TTree.h"
 #include "TFile.h"
 //
@@ -80,11 +81,19 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       edm::Service<TFileService> fs_;
       TTree *tree_;
 
-      std::vector<float> jet_eta_;
-      std::vector<float> jet_phi_;
-      std::vector<float> qoverp_;
+      std::vector<double> jet_eta_;
+      std::vector<double> jet_phi_;
+      std::vector<double> qoverp_;
       reco::TrackBase::CovarianceMatrix covariance_mat_;
-      reco::TrackBase::ParameterSet track_parameters_;
+      reco::TrackBase::ParameterVector track_parameters_;
+
+      struct customEventData {  
+        std::vector<double> jet_eta_;
+        std::vector<double> jet_phi_;
+        std::vector<double> qoverp_;
+        reco::TrackBase::CovarianceMatrix covariance_mat_;
+        reco::TrackBase::ParameterVector track_parameters_;
+      };
 };
 
 //
@@ -103,11 +112,20 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
   tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
 {
+    gROOT->Reset();
     usesResource("TFileService");
-
+    
     //now do what ever initialization is needed
     tree_ = fs_->make<TTree>("tree","tree");
-
+    tree_->Branch("nevent", &nevent_, "nevent/I");
+    tree_->Branch("nlumi", &nlumi_, "nlumi/I");
+    tree_->Branch("nrun", &nrun_, "nrun/I");
+    
+    tree_->Branch("jeteta", &jet_eta_, "jet_eta/D");
+    tree_->Branch("jetphi", &jet_phi_, "jet_phi/D");
+    tree_->Branch("qoverp", &jet_eta_, "qoverp/D");
+    tree_->Branch("covarianceMatrix", &covariance_mat_, "jet_eta/D");
+    tree_->Branch("trackparameters", &track_parameters_, "jet_eta/D");
 }
 
 
@@ -151,25 +169,24 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         itTrack_ != tracks_->end(); 
         ++itTrack_) {
 
-        reco::TrackCollection trk_ = *itTrack_;
+        reco::Track trk_ = *itTrack_;
+        
+        jet_eta_.push_back(trk_.eta());
+        jet_phi_.push_back(trk_.phi());
+        qoverp_.push_back(trk_.qoverp());
+        //reco::TrackBase::CovarianceMatrix covariance_mat_ = trk_.covariance();
+        reco::TrackBase::ParameterVector track_parameters_ = trk_.parameters();
 
-        reco::TrackBase::CovarianceMatrix covariance_mat_ = trk_.covariance();
-        reco::TrackBase::ParameterSet track_parameters_ = trk_.parameters();
-
-        std::cout << "Track Covariance and Parameter Set found." << std::endl;
+        // Print the collected parameters from the parameter set
+        for (int i_=0; i_ < track_parameters_.kSize; i_++) {
+            std::cout << ' ' << track_parameters_.At(i_) << std::endl;
+        }
+        std::cout << "Track Covariance and Parameter Set found ?" << std::endl;
         //std::cout << "Track Phi" << trk_.phi();
 
         numtracks_ ++;
         LogInfo("Tracks") << "Found " << numtracks_ << " tracks\n";       // do something with track parameters, e.g, plot the charge.
     }
-
-    /*
-    // Print the collected parameters from the parameter set
-    for (int i_=0; i_<trk_.size(); i_++) {
-      std::cout << ' ' << myvector.at(i_);
-    }
-    std::cout << '\n';
-    */
     
     // Reset number of hits to zero
     numtracks_ = 0;
@@ -188,10 +205,11 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     std::cout << "Run in TrackExtra section " << numtracks_ << "times." << std::endl;
 
     // TODO: Print extra information about the tracks
-
-
+    // TODO: Print covariance matrix and track parameters
+    
     tree_->Fill();
-
+    tree_->Print();
+    
     /* #ifdef THIS_IS_AN_EVENT_EXAMPLE
        Handle<ExampleData> pIn;
        iEvent.getByLabel("example",pIn);
@@ -219,9 +237,20 @@ void
 MyTrackingNtuples::endJob()
 {
     
-    tree_->Branch("nevent", &nevent_, "nevent/I");
-    tree_->Branch("nlumi", &nlumi_, "nlumi/I");
-    tree_->Branch("nrun", &nrun_, "nrun/I");
+    jet_eta_.clear();
+    jet_phi_.clear();
+    qoverp_.clear();
+    //covariance_mat_.clear();
+    //track_parameters_.clear();
+
+    std::vector<double> tmpVector1;
+    tmpVector1.swap(jet_eta_);
+    std::vector<double> tmpVector2;
+    tmpVector2.swap(jet_phi_);
+    std::vector<double> tmpVector3;
+    tmpVector3.swap(qoverp_);
+    //std::vector<covariance_mat_>.swap(covariance_mat_);
+    //std::vector<track_parameters_>.swap(track_parameters_);
 
     std::cout << ">> Ending job." << std::endl;
 }
