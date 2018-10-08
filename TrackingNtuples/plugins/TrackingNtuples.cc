@@ -121,11 +121,11 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("nlumi", &nlumi_, "nlumi/I");
     tree_->Branch("nrun", &nrun_, "nrun/I");
     
-    tree_->Branch("jeteta", &jet_eta_, "jet_eta/D");
-    tree_->Branch("jetphi", &jet_phi_, "jet_phi/D");
-    tree_->Branch("qoverp", &jet_eta_, "qoverp/D");
-    tree_->Branch("covarianceMatrix", &covariance_mat_, "jet_eta/D");
-    tree_->Branch("trackparameters", &track_parameters_, "jet_eta/D");
+    tree_->Branch("jeteta", &jet_eta_);
+    tree_->Branch("jetphi", &jet_phi_);
+    tree_->Branch("qoverp", &jet_eta_);
+    //tree_->Branch("covarianceMatrix", &covariance_mat_);
+    tree_->Branch("trackparameters", &track_parameters_);
 }
 
 
@@ -134,6 +134,7 @@ MyTrackingNtuples::~MyTrackingNtuples()
     // do anything here that needs to be done at destruction time
     // (e.g. close files, deallocate resources etc.)
     tree_->Write();
+    tree_->ResetBranchAddresses();
 
 }
 
@@ -161,6 +162,10 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     // Set a counter to check the number of hits
     int numtracks_ = 0;
     
+    jet_eta_.clear();
+    jet_phi_.clear();
+    qoverp_.clear();
+
     // Get the information from the pixeltrack branches
     Handle<reco::TrackCollection> tracks_;
     iEvent.getByToken(tracksToken_, tracks_);
@@ -174,12 +179,16 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         jet_eta_.push_back(trk_.eta());
         jet_phi_.push_back(trk_.phi());
         qoverp_.push_back(trk_.qoverp());
-        //reco::TrackBase::CovarianceMatrix covariance_mat_ = trk_.covariance();
-        reco::TrackBase::ParameterVector track_parameters_ = trk_.parameters();
+        std::cout << 'Jet Data: ' << trk_.eta() << trk_.phi() << trk_.qoverp_() << endl;
+        // covariance_mat_ = trk_.covariance();
+        track_parameters_ = trk_.parameters();
+
+        // TODO #1: Print the covariance matrix and 
+        // figure out how to store it in the TTree
 
         // Print the collected parameters from the parameter set
         for (int i_=0; i_ < track_parameters_.kSize; i_++) {
-            std::cout << ' ' << track_parameters_.At(i_) << std::endl;
+            std::cout << 'Track Param: ' << track_parameters_.At(i_) << std::endl;
         }
         std::cout << "Track Covariance and Parameter Set found ?" << std::endl;
         //std::cout << "Track Phi" << trk_.phi();
@@ -204,8 +213,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 
     std::cout << "Run in TrackExtra section " << numtracks_ << "times." << std::endl;
 
-    // TODO: Print extra information about the tracks
-    // TODO: Print covariance matrix and track parameters
+    // TODO #2: Print extra information about the tracks
     
     tree_->Fill();
     tree_->Print();
@@ -237,10 +245,8 @@ void
 MyTrackingNtuples::endJob()
 {
     
-    jet_eta_.clear();
-    jet_phi_.clear();
-    qoverp_.clear();
-    //covariance_mat_.clear();
+    // The Covariance Matrix and Track Parameters are cleared by gROOT->Reset()
+    // covariance_mat_.clear();
     //track_parameters_.clear();
 
     std::vector<double> tmpVector1;
