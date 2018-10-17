@@ -91,11 +91,15 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       reco::TrackBase::ParameterVector track_parameters_;
 
       std::vector<double> reshaped_cov_mat_;
+      std::vector< std::vector<double> > covariance_array_;
 
       struct customEventData {  
         std::vector<double> jet_eta_;
         std::vector<double> jet_phi_;
         std::vector<double> qoverp_;
+        std::vector<double> dxy_;
+        std::vector<double> dsz_;
+        
         reco::TrackBase::CovarianceMatrix covariance_mat_;
         reco::TrackBase::ParameterVector track_parameters_;
       };
@@ -126,11 +130,14 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("nlumi", &nlumi_, "nlumi/I");
     tree_->Branch("nrun", &nrun_, "nrun/I");
     
-    tree_->Branch("jeteta", &jet_eta_);
-    tree_->Branch("jetphi", &jet_phi_);
-    tree_->Branch("qoverp", &jet_eta_);
-    //tree_->Branch("covarianceMatrix", &covariance_mat_);
+    tree_->Branch("jeteta", &jet_eta_, "jeteta/D");
+    tree_->Branch("jetphi", &jet_phi_, "jetphi/D");
+    tree_->Branch("qoverp", &jet_eta_, "qoverp/D");
+    tree_->Branch("dxy", &dxy_);
+    tree_->Branch("dsz", &dsz_);
+
     tree_->Branch("trackparameters", &track_parameters_);
+    tree_->Branch("covariancearray", &covariance_array_)
 }
 
 
@@ -138,9 +145,6 @@ MyTrackingNtuples::~MyTrackingNtuples()
 {
     // do anything here that needs to be done at destruction time
     // (e.g. close files, deallocate resources etc.)
-    tree_->Write();
-    tree_->ResetBranchAddresses();
-
 }
 
 
@@ -170,6 +174,12 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     jet_eta_.clear();
     jet_phi_.clear();
     qoverp_.clear();
+    dsz_.clear();
+    dxy_.clear();
+
+    // TODO: Is this clearing the internal vectors 
+    // as well as the container?
+    covariance_array_.clear();
 
     // Get the information from the pixeltrack branches
     Handle<reco::TrackCollection> tracks_;
@@ -194,28 +204,43 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 
         std::cout << "Track Parameters: "
         // Print the collected parameters from the parameter set
-        for (int i_=0; i_ < track_parameters_.kSize; i_++) {
+        for (int i_ = 0; i_ < track_parameters_.kSize; i_++) {
             std::cout << track_parameters_.At(i_);
         }
+        std::cout << std::endl;
 
-        // Print the covariance matrix and reshape it 
-        // to store it in a fixed-dimension array of doubles
-        std::cout << "Covariance Matrix: " << std::endl;
-        for (int i_=0; i_ < covariance_mat_.kSize; i_++) {
-          for (int j_=0; j_ <= i_; j_++) {
+        // Reset counter variable
+        i_ = 0;
+
+        // Print the covariance matrix, eliminate the upper triangular half
+        // and reshape it to store it in a fixed-dimension vector of doubles
+        for (i_ = 0; i_ < covariance_mat_.kSize; i_++) {
+          for (int j_ = 0; j_ <= i_; j_++) {
             std::cout << covariance_mat_[i_][j_] << " | ";
-            reshaped_cov_mat_.push_back(covariance_mat_[i_][j_])
+            reshaped_cov_mat_.push_back(covariance_mat_[i_][j_]);
           }
           std::endl;
         }
+        
+        std::cout << "Covariance Matrix: " << std::endl;
+        for (i_ = 0; i_ < reshaped_cov_mat_.kSize; i_++) {
+            std::cout << reshaped_cov_mat_.At(i_);
+        }
+        std::cout << std::endl;
 
+        // Push the reshaped vector into a container of multiple vectors
+        // which will contain all the track covariances for an event
+        covariance_array_.push_back(reshaped_cov_mat_);
+        reshaped_cov_mat_.clear();
+        
         //std::cout << "Track Covariance and Parameter Set found" << std::endl;
 
         numtracks_ ++;
-        LogInfo("Tracks") << "Found " << numtracks_ << " tracks\n";       // do something with track parameters, e.g, plot the charge.
+        LogInfo("Tracks") << "Found " << numtracks_ << " tracks" << std::endl;;       
+        // do something with track parameters, e.g, plot the charge.
     }
     
-    // Reset number of hits to zero
+    // Reset number of tracks to zero
     numtracks_ = 0;
     
     // Get the extra information from the pixeltrack branches
@@ -226,7 +251,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         itTrackExtra_ != trackExtra_->end();
         ++itTrackExtra_) {
         numtracks_ ++;
-        LogInfo("TrackExtra") << "Found extra info on " << numtracks_ << " tracks\n";
+        LogInfo("TrackExtra") << "Found extra info on " << numtracks_ << " tracks" << std::endl;
     }
 
     std::cout << "Run in TrackExtra section " << numtracks_ << "times." << std::endl;
@@ -262,10 +287,12 @@ MyTrackingNtuples::beginJob()
 void
 MyTrackingNtuples::endJob()
 {
+    tree_->Write();
+    tree_->ResetBranchAddresses();
     
     // The Covariance Matrix and Track Parameters are cleared by gROOT->Reset()
-    // covariance_mat_.clear();
-    //track_parameters_.clear();
+    std::vector< std::vector<double> > tmpMatrix;
+    tmpMatrix.swap(covariance_array_)
 
     std::vector<double> tmpVector1;
     tmpVector1.swap(jet_eta_);
@@ -273,6 +300,7 @@ MyTrackingNtuples::endJob()
     tmpVector2.swap(jet_phi_);
     std::vector<double> tmpVector3;
     tmpVector3.swap(qoverp_);
+    
     //std::vector<covariance_mat_>.swap(covariance_mat_);
     //std::vector<track_parameters_>.swap(track_parameters_);
 
