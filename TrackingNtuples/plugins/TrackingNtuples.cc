@@ -194,7 +194,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         jet_eta_.push_back(trk_.eta());
         jet_phi_.push_back(trk_.phi());
         qoverp_.push_back(trk_.qoverp());
-        std::cout << "Jet Data: " << trk_.eta() << trk_.phi() << trk_.qoverp_() << endl;
+        std::cout << "Jet Data: " << trk_.eta() << trk_.phi() << trk_.qoverp() << std::endl;
         
         covariance_mat_ = trk_.covariance();
         track_parameters_ = trk_.parameters();
@@ -202,7 +202,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         // TODO #1: Figure out how to store covariance
         // matrix in the TTree - Ntuples?
 
-        std::cout << "Track Parameters: "
+        std::cout << "Track Parameters: ";
         // Print the collected parameters from the parameter set
         for (int i_ = 0; i_ < track_parameters_.kSize; i_++) {
             std::cout << track_parameters_.At(i_);
