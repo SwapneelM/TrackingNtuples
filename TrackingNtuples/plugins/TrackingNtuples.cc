@@ -182,11 +182,11 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
 //  rphiRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),
 //  stereoRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
 //  matchedRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("matchedRecHits"))),
-//  matchedRecHitToken_(consumes<edm::DetSetVector<SiStripMatchedRecHit2D> >(iConfig.getParameter<edm::InputTag>("matchedRecHit"))),
-  rphiRecHitToken_(consumes<edm::DetSetVector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("rphiRecHit"))),   
+  matchedRecHitToken_(consumes<edm::DetSetVector<SiStripMatchedRecHit2D> >(iConfig.getParameter<edm::InputTag>("matchedRecHits"))),
+  rphiRecHitToken_(consumes<edm::DetSetVector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),   
 //  siPhase2RecHitsToken_(consumes<edm::DetSetVector<Phase2TrackerRecHit1D> >(iConfig.getParameter<edm::InputTag>("siPhase2RecHits"))),
   stereoRecHitToken_(consumes<edm::DetSetVector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
-  siPixelRecHitsToken_  (consumes<edm::DetSetVector<SiPixelRecHit> >(iConfig.getParameter<edm::InputTag>("siPixelRecHits")))
+  siPixelRecHitsToken_(consumes<edm::DetSetVector<SiPixelRecHit> >(iConfig.getParameter<edm::InputTag>("siPixelRecHits")))
 {
     gROOT->Reset();
     usesResource("TFileService");
