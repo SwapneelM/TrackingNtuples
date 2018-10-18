@@ -177,7 +177,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     nevent_=iEvent.id().event();
     nlumi_=iEvent.id().luminosityBlock();
     nrun_=iEvent.id().run();
-
+    
     std::cout << "Event Number: " << nevent_ << std::endl;
     std::cout << "Luminosity Block: " << nlumi_ << std::endl;
     std::cout << "Run Number: " << nrun_ << std::endl;
@@ -226,19 +226,20 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         // Reset counter variable
         // i_ = 0;
 
-        // Print the covariance matrix, eliminate the upper triangular half
+        // Print the covariance matrix (assume 5 x 5), eliminate the upper triangular half
         // and reshape it to store it in a fixed-dimension vector of doubles
-        for (int i_ = 0; i_ < covariance_mat_.kSize; i_++) {
+        for (int i_ = 0; i_ < 5; i_++) {
           for (int j_ = 0; j_ <= i_; j_++) {
-            std::cout << covariance_mat_[i_][j_] << " | ";
+            // std::cout << "i: " << i_ << " j: " << j_ << std::endl;
+            // std::cout << covariance_mat_[i_][j_] << " | ";
             reshaped_cov_mat_.push_back(covariance_mat_[i_][j_]);
           }
           std::cout << std::endl;
         }
-        
-        std::cout << "Covariance Matrix: " << std::endl;
+
+        std::cout << "Reshaped Covariance Matrix: " << reshaped_cov_mat_.size() << std::endl;
         for (int i_ = 0; (unsigned)i_ < reshaped_cov_mat_.size(); i_++) {
-            std::cout << reshaped_cov_mat_.at(i_);
+            std::cout << reshaped_cov_mat_.at(i_) << " ";
         }
         std::cout << std::endl;
 
