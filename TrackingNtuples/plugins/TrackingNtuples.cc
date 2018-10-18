@@ -70,8 +70,8 @@ Description: [one line class summary]
 #include "DataFormats/TrackCandidate/interface/TrackCandidateCollection.h"
 
 // TODO: Check if this is necessary
-#include "DataFormats/​TrackerRecHit2D/​interface/​Phase2TrackerRecHit1D.h"
-#include "DataFormats/​TrackerRecHit2D/​interface/​TkCloner.h"
+#include "DataFormats/TrackerRecHit2D/interface/Phase2TrackerRecHit1D.h"
+#include "DataFormats/TrackerRecHit2D/interface/TkCloner.h"
 
 // For the Geometry - is this required? Probably at a later point.
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
@@ -135,18 +135,18 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       // Declare default buffer size for SiStripRecHit Tracking
       int bufsize = 32000;
 
-      // Testing New File SimTracker
-      bool doPixel_;
-      bool doStrip_;
+      // -------------------- Testing Rechit Retrieval --------------------------
+      //edm::EDGetTokenT<bool> doPixel_;
+      //edm::EDGetTokenT<bool> doStrip_;
       
-      doPixel_( conf.getParameter<bool>("associatePixel") ),
-      doStrip_( conf.getParameter<bool>("associateStrip") ),
+      // doPixel_( conf.getParameter<bool>("associatePixel") );
+      // doStrip_( conf.getParameter<bool>("associateStrip") );
       
       edm::EDGetTokenT< edm::DetSetVector<SiStripMatchedRecHit2D> > matchedRecHitToken_;
       edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > rphiRecHitToken_;
       edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > stereoRecHitToken_;
       edm::EDGetTokenT< edm::DetSetVector<SiPixelRecHit> > siPixelRecHitsToken_;
-//      edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerRecHit1D> > siPhase2RecHitsToken_;
+      // edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerRecHit1D> > siPhase2RecHitsToken_;
     
       
 
