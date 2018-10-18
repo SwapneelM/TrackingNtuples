@@ -71,7 +71,10 @@ process.ntuples = cms.EDAnalyzer(
   pixelTracks = cms.InputTag('pixelTracks'),
   matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
   rphiRecHits = cms.InputTag("siStripMatchedRecHits","rphiRecHit"),
-  stereoRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHitUnmatched")
+  stereoiRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHit"),
+  # rphiRecHitsUnmatched = cms.InputTag("siStripMatchedRecHits","rphiRecHitUnmatched"),
+  # stereoRecHitsUnmatched = cms.InputTag("siStripMatchedRecHits","stereoRecHitUnmatched"),
+  siPixelHits = cms.InputTag("siPixelRecHits")
   # useRingSlector = cms.bool(True)
 )
 
