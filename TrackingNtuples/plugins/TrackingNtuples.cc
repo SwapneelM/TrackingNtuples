@@ -176,7 +176,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
-  src_(iConfig.getParameter<edm::InputTag>( "src" )),
+//  src_(iConfig.getParameter<edm::InputTag>( "src" )),
   tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
 //  rphiRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),
