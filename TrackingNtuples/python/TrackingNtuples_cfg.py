@@ -66,7 +66,13 @@ process.TFileService=cms.Service(
 
 process.ntuples = cms.EDAnalyzer(
   'MyTrackingNtuples',
+  # useSimpleRphiHitsCleaner = cms.bool(False),
+  # minRing = cms.int32(1),
   pixelTracks = cms.InputTag('pixelTracks'),
+  matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
+  rphiRecHits = cms.InputTag("siStripMatchedRecHits","rphiRecHit"),
+  stereoRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHitUnmatched")
+  # useRingSlector = cms.bool(True)
 )
 
 process.path = cms.Path(process.ntuples)

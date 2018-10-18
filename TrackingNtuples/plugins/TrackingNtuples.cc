@@ -57,6 +57,31 @@ Description: [one line class summary]
 //
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+// Adding DataFormats for tracking Rechits
+#include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
+#include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
+#include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2DCollection.h"
+
+#include "DataFormats/TrackerRecHit2D/interface/SiStripMatchedRecHit2D.h"
+#include "DataFormats/TrackerRecHit2D/interface/SiStripMatchedRecHit2DCollection.h"
+
+#include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
+#include "DataFormats/TrajectorySeed/interface/TrajectorySeedCollection.h"
+#include "DataFormats/TrackCandidate/interface/TrackCandidateCollection.h"
+
+// TODO: Check if this is necessary
+#include "DataFormats/​TrackerRecHit2D/​interface/​Phase2TrackerRecHit1D.h"
+#include "DataFormats/​TrackerRecHit2D/​interface/​TkCloner.h"
+
+// For the Geometry - is this required? Probably at a later point.
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
+#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetType.h"
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetType.h"
+#include "DataFormats/DetId/interface/DetId.h"
+#include "DataFormats/GeometryVector/interface/LocalPoint.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 //
 // class declaration
 //
@@ -82,41 +107,60 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       //used to select extra track information to read 
       edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;
       
-    edm::Service<TFileService> fs_;
-    TTree *tree_;
-    
-    // Track properties
-    std::vector<double> jet_eta_;
-    std::vector<double> jet_phi_;
-    std::vector<double> qoverp_;
-    std::vector<double> dxy_;
-    std::vector<double> dsz_;
-    
-    // Store the return values of parameter and 
-    // covariance matrix functions
-    reco::TrackBase::CovarianceMatrix covariance_mat_;
-    reco::TrackBase::ParameterVector track_parameters_;
-    
-    // Handle the Reshaping of the Covariance Matrix
-    std::vector<double> reshaped_cov_mat_;
-    std::vector< std::vector<double> > covariance_array_;
-        
-    // Temporary Variables
-    std::vector< std::vector<double> > tmpMatrix;
-    std::vector<double> tmpVector1;
-    std::vector<double> tmpVector2;
-    std::vector<double> tmpVector3;
+      edm::Service<TFileService> fs_;
+      TTree *tree_;
+      
+      // Track properties
+      std::vector<double> jet_eta_;
+      std::vector<double> jet_phi_;
+      std::vector<double> qoverp_;
+      std::vector<double> dxy_;
+      std::vector<double> dsz_;
+      
+      // Store the return values of parameter and 
+      // covariance matrix functions
+      reco::TrackBase::CovarianceMatrix covariance_mat_;
+      reco::TrackBase::ParameterVector track_parameters_;
+      
+      // Handle the Reshaping of the Covariance Matrix
+      std::vector<double> reshaped_cov_mat_;
+      std::vector< std::vector<double> > covariance_array_;
+          
+      // Temporary Variables
+      std::vector< std::vector<double> > tmpMatrix;
+      std::vector<double> tmpVector1;
+      std::vector<double> tmpVector2;
+      std::vector<double> tmpVector3;
 
-    struct customEventData {  
-        std::vector<double> jet_eta_;
-        std::vector<double> jet_phi_;
-        std::vector<double> qoverp_;
-        std::vector<double> dxy_;
-        std::vector<double> dsz_;
-        
-        reco::TrackBase::CovarianceMatrix covariance_mat_;
-        reco::TrackBase::ParameterVector track_parameters_;
-      };
+      // Declare default buffer size for SiStripRecHit Tracking
+      int bufsize = 32000;
+
+      // Testing New File SimTracker
+      bool doPixel_;
+      bool doStrip_;
+      
+      doPixel_( conf.getParameter<bool>("associatePixel") ),
+      doStrip_( conf.getParameter<bool>("associateStrip") ),
+      
+      edm::EDGetTokenT< edm::DetSetVector<SiStripMatchedRecHit2D> > matchedRecHitToken_;
+      edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > rphiRecHitToken_;
+      edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > stereoRecHitToken_;
+      edm::EDGetTokenT< edm::DetSetVector<SiPixelRecHit> > siPixelRecHitsToken_;
+//      edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerRecHit1D> > siPhase2RecHitsToken_;
+    
+      
+
+      // TODO: Try using a struct to save time and effort
+      struct customEventData {  
+          std::vector<double> jet_eta_;
+          std::vector<double> jet_phi_;
+          std::vector<double> qoverp_;
+          std::vector<double> dxy_;
+          std::vector<double> dsz_;
+          
+          reco::TrackBase::CovarianceMatrix covariance_mat_;
+          reco::TrackBase::ParameterVector track_parameters_;
+        };
 };
 
 //
@@ -132,8 +176,17 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 //
 MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
+  src_(iConfig.getParameter<edm::InputTag>( "src" )),
   tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
-  trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks")))
+  trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
+//  rphiRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),
+//  stereoRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
+//  matchedRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("matchedRecHits"))),
+  matchedRecHitToken_(consumes<edm::DetSetVector<SiStripMatchedRecHit2D> >(iConfig.getParameter<edm::InputTag>("matchedRecHit"))),
+  rphiRecHitToken_(consumes<edm::DetSetVector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("rphiRecHit"))),   
+//  siPhase2RecHitsToken_(consumes<edm::DetSetVector<Phase2TrackerRecHit1D> >(iConfig.getParameter<edm::InputTag>("siPhase2RecHits"))),
+  stereoRecHitToken_(consumes<edm::DetSetVector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
+  siPixelRecHitsToken_  (consumes<edm::DetSetVector<SiPixelRecHit> >(iConfig.getParameter<edm::InputTag>("siPixelRecHits")))
 {
     gROOT->Reset();
     usesResource("TFileService");
@@ -263,12 +316,12 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     Handle<reco::TrackExtraCollection> trackExtra_;
     iEvent.getByToken(trackExtraToken_, trackExtra_);
 
-    for(reco::TrackExtraCollection::const_iterator itTrackExtra_ = trackExtra_->begin();
+    /*  for(reco::TrackExtraCollection::const_iterator itTrackExtra_ = trackExtra_->begin();
         itTrackExtra_ != trackExtra_->end();
         ++itTrackExtra_) {
         numtracks_ ++;
         LogInfo("TrackExtra") << "Found extra info on " << numtracks_ << " tracks" << std::endl;
-    }
+    }*/
 
     std::cout << "Run in TrackExtra section " << numtracks_ << "times." << std::endl;
 
@@ -286,6 +339,23 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
        ESHandle<SetupData> pSetup;
        iSetup.get<SetupRecord>().get(pSetup);
     #endif */
+
+
+// ----------------------- Get the RecHits from the Data -------------------
+
+    // int pixelcounter_ = 0;
+    // int stripcounter_ = 0;
+
+    edm::Handle<SiStripMatchedRecHit2DCollection> rechitsmatched_;
+    edm::Handle<SiStripRecHit2DCollection> rechitsrphi_;
+    edm::Handle<SiStripRecHit2DCollection> rechitsstereo_;
+    edm::Handle<SiPixelRecHitCollection> pixelrechits_;
+
+    iEvent.getByToken(siPixelRecHitsToken_, pixelrechits_);
+    iEvent.getByToken(rphiRecHitToken_, rechitsrphi_);
+    iEvent.getByToken(stereoRecHitToken_, rechitsstereo_);
+    iEvent.getByToken(matchedRecHitToken_, rechitsmatched_);
+
 }
 
 
