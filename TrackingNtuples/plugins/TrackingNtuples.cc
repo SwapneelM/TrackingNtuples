@@ -68,12 +68,14 @@ Description: [one line class summary]
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
 #include "DataFormats/TrajectorySeed/interface/TrajectorySeedCollection.h"
 #include "DataFormats/TrackCandidate/interface/TrackCandidateCollection.h"
+// #include "DataFormats/Common/interface/DetSet.h"
 
 // TODO: Check if this is necessary
-#include "DataFormats/TrackerRecHit2D/interface/Phase2TrackerRecHit1D.h"
-#include "DataFormats/TrackerRecHit2D/interface/TkCloner.h"
+// #include "DataFormats/TrackerRecHit2D/interface/Phase2TrackerRecHit1D.h"
+// #include "DataFormats/TrackerRecHit2D/interface/TkCloner.h"
 
 // For the Geometry - is this required? Probably at a later point.
+/*
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 #include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
@@ -82,6 +84,7 @@ Description: [one line class summary]
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+*/
 //
 // class declaration
 //
@@ -142,10 +145,10 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       // doPixel_( conf.getParameter<bool>("associatePixel") );
       // doStrip_( conf.getParameter<bool>("associateStrip") );
       
-      edm::EDGetTokenT< edm::DetSetVector<SiStripMatchedRecHit2D> > matchedRecHitToken_;
-      edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > rphiRecHitToken_;
-      edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > stereoRecHitToken_;
-      edm::EDGetTokenT< edm::DetSetVector<SiPixelRecHit> > siPixelRecHitsToken_;
+      edm::EDGetTokenT< std::vector <SiStripMatchedRecHit2D> > matchedRecHitToken_;
+      edm::EDGetTokenT< std::vector <SiStripRecHit2D> > rphiRecHitToken_;
+      edm::EDGetTokenT< std::vector <SiStripRecHit2D> > stereoRecHitToken_;
+      edm::EDGetTokenT< std::vector <SiPixelRecHit> > siPixelRecHitsToken_;
       // edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerRecHit1D> > siPhase2RecHitsToken_;
     
       
@@ -182,11 +185,11 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
 //  rphiRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),
 //  stereoRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
 //  matchedRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("matchedRecHits"))),
-  matchedRecHitToken_(consumes<edm::DetSetVector<SiStripMatchedRecHit2D> >(iConfig.getParameter<edm::InputTag>("matchedRecHits"))),
-  rphiRecHitToken_(consumes<edm::DetSetVector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),   
+  matchedRecHitToken_(consumes<std::vector<SiStripMatchedRecHit2D> >(iConfig.getParameter<edm::InputTag>("matchedRecHits"))),
+  rphiRecHitToken_(consumes<std::vector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),   
 //  siPhase2RecHitsToken_(consumes<edm::DetSetVector<Phase2TrackerRecHit1D> >(iConfig.getParameter<edm::InputTag>("siPhase2RecHits"))),
-  stereoRecHitToken_(consumes<edm::DetSetVector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
-  siPixelRecHitsToken_(consumes<edm::DetSetVector<SiPixelRecHit> >(iConfig.getParameter<edm::InputTag>("siPixelRecHits")))
+  stereoRecHitToken_(consumes<std::vector<SiStripRecHit2D> >(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
+  siPixelRecHitsToken_(consumes<std::vector<SiPixelRecHit> >(iConfig.getParameter<edm::InputTag>("siPixelRecHits")))
 {
     gROOT->Reset();
     usesResource("TFileService");
