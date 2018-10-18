@@ -142,7 +142,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       // doPixel_( conf.getParameter<bool>("associatePixel") );
       // doStrip_( conf.getParameter<bool>("associateStrip") );
       
-      // edm::EDGetTokenT< edm::DetSetVector<SiStripMatchedRecHit2D> > matchedRecHitToken_;
+      edm::EDGetTokenT< edm::DetSetVector<SiStripMatchedRecHit2D> > matchedRecHitToken_;
       edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > rphiRecHitToken_;
       edm::EDGetTokenT< edm::DetSetVector<SiStripRecHit2D> > stereoRecHitToken_;
       edm::EDGetTokenT< edm::DetSetVector<SiPixelRecHit> > siPixelRecHitsToken_;
@@ -350,12 +350,12 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     edm::Handle<SiPixelRecHitCollection> pixelrechits_;
     edm::Handle<SiStripRecHit2DCollection> rechitsrphi_;
     edm::Handle<SiStripRecHit2DCollection> rechitsstereo_;
-    // edm::Handle<SiStripMatchedRecHit2DCollection> rechitsmatched_;
+    edm::Handle<SiStripMatchedRecHit2DCollection> rechitsmatched_;
 
     iEvent.getByToken(siPixelRecHitsToken_, pixelrechits_);
     iEvent.getByToken(rphiRecHitToken_, rechitsrphi_);
     iEvent.getByToken(stereoRecHitToken_, rechitsstereo_);
-    /// iEvent.getByToken(matchedRecHitToken_, rechitsmatched_);
+    iEvent.getByToken(matchedRecHitToken_, rechitsmatched_);
 
 }
 
