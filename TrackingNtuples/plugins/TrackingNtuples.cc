@@ -5,7 +5,7 @@
 //
 /**\class TrackingNtuples TrackingNtuples.cc TrackingNtuples/TrackingNtuples/plugins/TrackingNtuples.cc
 
- Description: [one line class summary]
+Description: [one line class summary]
 
  Implementation:
      [Notes on implementation]
@@ -48,6 +48,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "TMatrixD.h"
 #include "TROOT.h"
 #include "TTree.h"
 #include "TFile.h"
@@ -75,25 +76,38 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       int nlumi_ = 0;
       int nrun_ = 0;
 
-      edm::EDGetTokenT<reco::TrackCollection> tracksToken_;  //used to select what tracks to read from configuration file
-      edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;  //used to select extra track information to read 
+      //used to select what tracks to read from configuration file
+      edm::EDGetTokenT<reco::TrackCollection> tracksToken_; 
       
-      edm::Service<TFileService> fs_;
-      TTree *tree_;
+      //used to select extra track information to read 
+      edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;
+      
+    edm::Service<TFileService> fs_;
+    TTree *tree_;
+    
+    // Track properties
+    std::vector<double> jet_eta_;
+    std::vector<double> jet_phi_;
+    std::vector<double> qoverp_;
+    std::vector<double> dxy_;
+    std::vector<double> dsz_;
+    
+    // Store the return values of parameter and 
+    // covariance matrix functions
+    reco::TrackBase::CovarianceMatrix covariance_mat_;
+    reco::TrackBase::ParameterVector track_parameters_;
+    
+    // Handle the Reshaping of the Covariance Matrix
+    std::vector<double> reshaped_cov_mat_;
+    std::vector< std::vector<double> > covariance_array_;
+        
+    // Temporary Variables
+    std::vector< std::vector<double> > tmpMatrix;
+    std::vector<double> tmpVector1;
+    std::vector<double> tmpVector2;
+    std::vector<double> tmpVector3;
 
-      std::vector<double> jet_eta_;
-      std::vector<double> jet_phi_;
-      std::vector<double> qoverp_;
-      std::vector<double> dxy_;
-      std::vector<double> dsz_;
-
-      reco::TrackBase::CovarianceMatrix covariance_mat_;
-      reco::TrackBase::ParameterVector track_parameters_;
-
-      std::vector<double> reshaped_cov_mat_;
-      std::vector< std::vector<double> > covariance_array_;
-
-      struct customEventData {  
+    struct customEventData {  
         std::vector<double> jet_eta_;
         std::vector<double> jet_phi_;
         std::vector<double> qoverp_;
@@ -137,7 +151,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("dsz", &dsz_);
 
     tree_->Branch("trackparameters", &track_parameters_);
-    tree_->Branch("covariancearray", &covariance_array_)
+    tree_->Branch("covariancearray", &covariance_array_);
 }
 
 
@@ -210,21 +224,21 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         std::cout << std::endl;
 
         // Reset counter variable
-        i_ = 0;
+        // i_ = 0;
 
         // Print the covariance matrix, eliminate the upper triangular half
         // and reshape it to store it in a fixed-dimension vector of doubles
-        for (i_ = 0; i_ < covariance_mat_.kSize; i_++) {
+        for (int i_ = 0; i_ < covariance_mat_.kSize; i_++) {
           for (int j_ = 0; j_ <= i_; j_++) {
             std::cout << covariance_mat_[i_][j_] << " | ";
             reshaped_cov_mat_.push_back(covariance_mat_[i_][j_]);
           }
-          std::endl;
+          std::cout << std::endl;
         }
         
         std::cout << "Covariance Matrix: " << std::endl;
-        for (i_ = 0; i_ < reshaped_cov_mat_.kSize; i_++) {
-            std::cout << reshaped_cov_mat_.At(i_);
+        for (int i_ = 0; (unsigned)i_ < reshaped_cov_mat_.size(); i_++) {
+            std::cout << reshaped_cov_mat_.at(i_);
         }
         std::cout << std::endl;
 
@@ -291,15 +305,20 @@ MyTrackingNtuples::endJob()
     tree_->ResetBranchAddresses();
     
     // The Covariance Matrix and Track Parameters are cleared by gROOT->Reset()
-    std::vector< std::vector<double> > tmpMatrix;
-    tmpMatrix.swap(covariance_array_)
+    tmpMatrix.swap(covariance_array_);
 
-    std::vector<double> tmpVector1;
     tmpVector1.swap(jet_eta_);
-    std::vector<double> tmpVector2;
     tmpVector2.swap(jet_phi_);
-    std::vector<double> tmpVector3;
     tmpVector3.swap(qoverp_);
+    
+    /*
+    TVectorD tmpVector1;
+    tmpVector1.swap(jet_eta_);
+    TVectorD tmpVector2;
+    tmpVector2.swap(jet_phi_);
+    TVectorD tmpVector3;
+    tmpVector3.swap(qoverp_);
+    */
     
     //std::vector<covariance_mat_>.swap(covariance_mat_);
     //std::vector<track_parameters_>.swap(track_parameters_);
