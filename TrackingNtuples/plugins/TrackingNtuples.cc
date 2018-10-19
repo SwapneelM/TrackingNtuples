@@ -7,8 +7,8 @@
 
 Description: [one line class summary]
 
- Implementation:
-     [Notes on implementation]
+         Implementation:
+             [Notes on implementation]
 */
 //
 // Original Author:  Swapneel Sundeep Mehta
@@ -208,6 +208,24 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
 
     tree_->Branch("trackparameters", &track_parameters_);
     tree_->Branch("covariancearray", &covariance_array_);
+
+    tree_->Branch("NStereoHits",&NStereoHits_,"NStereoHits/I");
+    tree_->Branch("StereoHitX",&StereoHitX_,"StereoHitX[1000]/F");
+    tree_->Branch("StereoHitY",&StereoHitY_,"StereoHitY[1000]/F");
+    tree_->Branch("StereoHitZ",&StereoHitZ_,"StereoHitZ[1000]/F");
+
+    tree_->Branch("StereoHitR",&StereoHitR_,"StereoHitR[1000]/F");
+    tree_->Branch("StereoHitPhi",&StereoHitPhi_,"StereoHitPhi[1000]/F");
+    tree_->Branch("StereoHitTheta",&StereoHitTheta_,"StereoHitTheta[1000]/F");
+     
+    tree_->Branch("StereoHitSigX",&StereoHitSigX_,"StereoHitSigX[1000]/F");
+    tree_->Branch("StereoHitSigY",&StereoHitSigY_,"StereoHitSigY[1000]/F");
+    tree_->Branch("StereoHitCorr",&StereoHitCorr_,"StereoHitCorr[1000]/F");
+ 
+    tree_->Branch("StereoHitSignal",&StereoHitSignal_,"StereoHitSignal[1000]/F");
+    tree_->Branch("StereoHitNoise",&StereoHitNoise_,"StereoHitNoise[1000]/F");
+    tree_->Branch("StereoHitWidth",&StereoHitWidth_,"StereoHitWidth[1000]/I");
+
 }
 
 
@@ -359,6 +377,8 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     iEvent.getByToken(rphiRecHitToken_, rechitsrphi_);
     iEvent.getByToken(stereoRecHitToken_, rechitsstereo_);
     iEvent.getByToken(matchedRecHitToken_, rechitsmatched_);
+    
+    
 
 }
 
