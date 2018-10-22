@@ -69,7 +69,7 @@ Description: [one line class summary]
 #include "DataFormats/TrackCandidate/interface/TrackCandidateCollection.h"
 
 // Include the library file required for localpoint
-#include "DataFormats/​GeometrySurface/​interface/​GloballyPositioned.h"
+#include "DataFormats/GeometrySurface/interface/GloballyPositioned.h"
 
 // #include "DataFormats/Common/interface/DetSet.h"
 
