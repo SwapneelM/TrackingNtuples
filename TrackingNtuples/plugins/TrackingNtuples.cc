@@ -52,9 +52,8 @@ Description: [one line class summary]
 #include "TROOT.h"
 #include "TTree.h"
 #include "TFile.h"
-//
+
 // Adding Message Logging Capabilities
-//
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 // Adding DataFormats for tracking Rechits
@@ -68,6 +67,10 @@ Description: [one line class summary]
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
 #include "DataFormats/TrajectorySeed/interface/TrajectorySeedCollection.h"
 #include "DataFormats/TrackCandidate/interface/TrackCandidateCollection.h"
+
+// Include the library file required for localpoint
+#include "DataFormats/​GeometrySurface/​interface/​GloballyPositioned.h"
+
 // #include "DataFormats/Common/interface/DetSet.h"
 
 // TODO: Check if this is necessary
@@ -134,6 +137,8 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> tmpVector1;
       std::vector<double> tmpVector2;
       std::vector<double> tmpVector3;
+      std::vector<double> tmpVector4;
+      std::vector<double> tmpVector5;
 
       // Declare default buffer size for SiStripRecHit Tracking
       int bufsize = 32000;
@@ -150,8 +155,18 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       edm::EDGetTokenT< SiStripRecHit2DCollection > stereoRecHitToken_;
       edm::EDGetTokenT< SiPixelRecHitCollection > siPixelRecHitsToken_;
       // edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerRecHit1D> > siPhase2RecHitsToken_;
-    
-      
+
+      std::vector<float> stereo_x;
+      std::vector<float> stereo_y;
+      std::vector<float> stereo_z;
+
+      std::vector<float> rphi_x;
+      std::vector<float> rphi_y;
+      std::vector<float> rphi_z;
+
+      std::vector<float> stereo_r;
+      std::vector<float> stereo_phi;
+      std::vector<float> stereo_eta;
 
       // TODO: Try using a struct to save time and effort
       struct customEventData {  
@@ -209,15 +224,19 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("trackparameters", &track_parameters_);
     tree_->Branch("covariancearray", &covariance_array_);
 
-    tree_->Branch("NStereoHits",&NStereoHits_,"NStereoHits/I");
-    tree_->Branch("StereoHitX",&StereoHitX_,"StereoHitX[1000]/F");
-    tree_->Branch("StereoHitY",&StereoHitY_,"StereoHitY[1000]/F");
-    tree_->Branch("StereoHitZ",&StereoHitZ_,"StereoHitZ[1000]/F");
+    //tree_->Branch("NStereoHits",&NStereoHits_,"NStereoHits/I");
+    tree_->Branch("StereoHitX",&stereo_x,"StereoHitX[1000]/F");
+    tree_->Branch("StereoHitY",&stereo_y,"StereoHitY[1000]/F");
+    tree_->Branch("StereoHitZ",&stereo_z,"StereoHitZ[1000]/F");
 
-    tree_->Branch("StereoHitR",&StereoHitR_,"StereoHitR[1000]/F");
-    tree_->Branch("StereoHitPhi",&StereoHitPhi_,"StereoHitPhi[1000]/F");
-    tree_->Branch("StereoHitTheta",&StereoHitTheta_,"StereoHitTheta[1000]/F");
-     
+    tree_->Branch("MonoHitR",&rphi_r,"MonoHitR[1000]/F");
+    tree_->Branch("MonoHitPhi",&rphi_phi,"MonoHitPhi[1000]/F");
+    tree_->Branch("MonoHitTheta",&rphi_eta,"MonoHitTheta[1000]/F");
+
+    tree_->Branch("StereoHitX",&stereo_x,"StereoHitX[1000]/F");
+    tree_->Branch("StereoHitY",&stereo_y,"StereoHitY[1000]/F");
+    tree_->Branch("StereoHitZ",&stereo_z,"StereoHitZ[1000]/F");
+    /* 
     tree_->Branch("StereoHitSigX",&StereoHitSigX_,"StereoHitSigX[1000]/F");
     tree_->Branch("StereoHitSigY",&StereoHitSigY_,"StereoHitSigY[1000]/F");
     tree_->Branch("StereoHitCorr",&StereoHitCorr_,"StereoHitCorr[1000]/F");
@@ -225,6 +244,13 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("StereoHitSignal",&StereoHitSignal_,"StereoHitSignal[1000]/F");
     tree_->Branch("StereoHitNoise",&StereoHitNoise_,"StereoHitNoise[1000]/F");
     tree_->Branch("StereoHitWidth",&StereoHitWidth_,"StereoHitWidth[1000]/I");
+    */
+
+    // siRphiHitCollection_ = iConfig.getParameter<std::string>("siRphiHitCollection");
+    // siStereoHitCollection_ = iConfig.getParameter<std::string>("siStereoHitCollection");
+    // siMatchedHitCollection_ = iConfig.getParameter<std::string>("siMatchedHitCollection");
+
+
 
 }
 
@@ -235,6 +261,25 @@ MyTrackingNtuples::~MyTrackingNtuples()
     // (e.g. close files, deallocate resources etc.)
 }
 
+/*void MyTrackingNtuples::initNtuple(){
+
+  LogInfo("Tracks") << " In initNtuple " ;
+
+  NStereoHits_ = -999 ;
+
+  for (int init = 0 ; init < myMaxHits ; ++init){
+    StereoHitX_[init] = -999.;
+    StereoHitY_[init] = -999.;
+    StereoHitZ_[init] = -999.;
+    StereoHitR_[init] = -999.;
+    StereoHitPhi_[init] = -999.;
+    StereoHitTheta_[init] = -999.;
+
+    StereoHitSignal_[init] = -999.;
+    StereoHitNoise_[init] = -999.;
+    StereoHitWidth_[init] = -999. ;
+  }
+}*/
 
 //
 // member functions
@@ -310,7 +355,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
             // std::cout << covariance_mat_[i_][j_] << " | ";
             reshaped_cov_mat_.push_back(covariance_mat_[i_][j_]);
           }
-          std::cout << std::endl;
+          // std::cout << std::endl;
         }
 
         std::cout << "Reshaped Covariance Matrix: " << reshaped_cov_mat_.size() << std::endl;
@@ -324,7 +369,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         covariance_array_.push_back(reshaped_cov_mat_);
         reshaped_cov_mat_.clear();
         
-        //std::cout << "Track Covariance and Parameter Set found" << std::endl;
+        // std::cout << "Track Covariance and Parameter Set found" << std::endl;
 
         numtracks_ ++;
         LogInfo("Tracks") << "Found " << numtracks_ << " tracks" << std::endl;;       
@@ -345,23 +390,9 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         LogInfo("TrackExtra") << "Found extra info on " << numtracks_ << " tracks" << std::endl;
     }*/
 
-    std::cout << "Run in TrackExtra section " << numtracks_ << "times." << std::endl;
+    // std::cout << "Run in TrackExtra section " << numtracks_ << "times." << std::endl;
 
     // TODO #2: Print extra information about the tracks
-    
-    tree_->Fill();
-    tree_->Print();
-    
-    /* #ifdef THIS_IS_AN_EVENT_EXAMPLE
-       Handle<ExampleData> pIn;
-       iEvent.getByLabel("example",pIn);
-    #endif
-
-    #ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-       ESHandle<SetupData> pSetup;
-       iSetup.get<SetupRecord>().get(pSetup);
-    #endif */
-
 
 // ----------------------- Get the RecHits from the Data -------------------
 
@@ -374,12 +405,47 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     edm::Handle<SiStripMatchedRecHit2DCollection> rechitsmatched_;
 
     iEvent.getByToken(siPixelRecHitsToken_, pixelrechits_);
-    iEvent.getByToken(rphiRecHitToken_, rechitsrphi_);
-    iEvent.getByToken(stereoRecHitToken_, rechitsstereo_);
-    iEvent.getByToken(matchedRecHitToken_, rechitsmatched_);
+    iEvent.getByToken(rphiRecHitToken_, rphirechits_);
+    iEvent.getByToken(stereoRecHitToken_, stereorechits_);
+    iEvent.getByToken(matchedRecHitToken_, matchedrechits_);
     
-    
+    // Write a function that initializes the value of all of the variables 
+    // initNtuple();
 
+    // Print size of rphirechits
+    std::cout << "RPhiRecHits Data Size: " << (rphirechits_.product())->dataSize();
+
+    // Iterate over rphirechits and check if the begin/end methods work
+    /*for(std::vector<SiStripRecHit2D>::const_iterator hiter = rphirechits_.begin();
+        hiter != rphirechits_.end();
+        ++hiter) {
+      std::cout << ".";
+    }
+    std::cout << std::endl;*/
+
+    // Different approach to iterating over the rphirechits
+    if((rphirechits_.product())->dataSize() > 0) {
+
+      SiStripRecHit2DCollection::const_iterator recHitIdIterator = (rphirechits_.product())->begin();
+      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd = (rphirechits_.product())->end();
+
+      for(SiStripRecHit2DCollection::const_iterator iterrechit_ = recHitIdIterator;
+        iterrechit_ != recHitIdIteratorEnd;
+        iterrechit_++) {
+
+          LocalPoint lp = iterrechit_->localPosition();
+          rphi_x.push_back(lp.x());
+          rphi_y.push_back(lp.y());
+          rphi_z.push_back(lp.z()); 
+      }
+    }
+
+
+
+  // ------------------------------ Fill and Print the Tree -------------------------
+
+  tree_->Fill();
+  tree_->Print();
 }
 
 
@@ -406,7 +472,8 @@ MyTrackingNtuples::endJob()
     tmpVector1.swap(jet_eta_);
     tmpVector2.swap(jet_phi_);
     tmpVector3.swap(qoverp_);
-    
+    tmpVector4.swap(dxy_);
+    tmpVector5.swap(dsz_);
     /*
     TVectorD tmpVector1;
     tmpVector1.swap(jet_eta_);
