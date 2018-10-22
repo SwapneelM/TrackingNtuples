@@ -164,6 +164,10 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> rphi_y;
       std::vector<float> rphi_z;
 
+      std::vector<float> pixel_x;
+      std::vector<float> pixel_y;
+      std::vector<float> pixel_z;
+
       std::vector<float> stereo_r;
       std::vector<float> stereo_phi;
       std::vector<float> stereo_eta;
@@ -229,13 +233,13 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("StereoHitY",&stereo_y,"StereoHitY[1000]/F");
     tree_->Branch("StereoHitZ",&stereo_z,"StereoHitZ[1000]/F");
 
-    tree_->Branch("MonoHitR",&rphi_r,"MonoHitR[1000]/F");
-    tree_->Branch("MonoHitPhi",&rphi_phi,"MonoHitPhi[1000]/F");
-    tree_->Branch("MonoHitTheta",&rphi_eta,"MonoHitTheta[1000]/F");
+    tree_->Branch("MonoHitX",&rphi_x,"MonoHitX[1000]/F");
+    tree_->Branch("MonoHitY",&rphi_y,"MonoHitY[1000]/F");
+    tree_->Branch("MonoHitZ",&rphi_z,"MonoHitZ[1000]/F");
 
-    tree_->Branch("StereoHitX",&stereo_x,"StereoHitX[1000]/F");
-    tree_->Branch("StereoHitY",&stereo_y,"StereoHitY[1000]/F");
-    tree_->Branch("StereoHitZ",&stereo_z,"StereoHitZ[1000]/F");
+    tree_->Branch("PixelHitX",&pixel_x,"PixelHitX[1000]/F");
+    tree_->Branch("PixelHitY",&pixel_y,"PixelHitY[1000]/F");
+    tree_->Branch("PixelHitZ",&pixel_z,"PixelHitZ[1000]/F");
     /* 
     tree_->Branch("StereoHitSigX",&StereoHitSigX_,"StereoHitSigX[1000]/F");
     tree_->Branch("StereoHitSigY",&StereoHitSigY_,"StereoHitSigY[1000]/F");
@@ -399,21 +403,23 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     // int pixelcounter_ = 0;
     // int stripcounter_ = 0;
 
-    edm::Handle<SiPixelRecHitCollection> pixelrechits_;
-    edm::Handle<SiStripRecHit2DCollection> rechitsrphi_;
-    edm::Handle<SiStripRecHit2DCollection> rechitsstereo_;
-    edm::Handle<SiStripMatchedRecHit2DCollection> rechitsmatched_;
+    edm::Handle<SiPixelRecHitCollection> pixelrechitColl_;
+    edm::Handle<SiStripRecHit2DCollection> rphirechitColl_;
+    edm::Handle<SiStripRecHit2DCollection> stereorechitColl_;
+    edm::Handle<SiStripMatchedRecHit2DCollection> matchedrechitColl_;
 
-    iEvent.getByToken(siPixelRecHitsToken_, pixelrechits_);
-    iEvent.getByToken(rphiRecHitToken_, rphirechits_);
-    iEvent.getByToken(stereoRecHitToken_, stereorechits_);
-    iEvent.getByToken(matchedRecHitToken_, matchedrechits_);
+    iEvent.getByToken(siPixelRecHitsToken_, pixelrechitColl_);
+    iEvent.getByToken(rphiRecHitToken_, rphirechitColl_);
+    iEvent.getByToken(stereoRecHitToken_, stereorechitColl_);
+    iEvent.getByToken(matchedRecHitToken_, matchedrechitColl_);
     
     // Write a function that initializes the value of all of the variables 
     // initNtuple();
 
     // Print size of rphirechits
-    std::cout << "RPhiRecHits Data Size: " << (rphirechits_.product())->dataSize();
+    std::cout << "RPhiRecHitColl Data Size: " << (rphirechitColl_.product())->dataSize();
+    std::cout << "StereoRecHitColl Data Size: " << (stereorechitColl_.product())->dataSize();
+    std::cout << "PixelRecHitColl Data Size: " << (pixelrechitColl_.product())->dataSize();
 
     // Iterate over rphirechits and check if the begin/end methods work
     /*for(std::vector<SiStripRecHit2D>::const_iterator hiter = rphirechits_.begin();
@@ -424,24 +430,77 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     std::cout << std::endl;*/
 
     // Different approach to iterating over the rphirechits
-    if((rphirechits_.product())->dataSize() > 0) {
+    
+    /*
+    if((stereorechitColl_.product())->dataSize() > 0) {
+      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (recHitColl.product())->begin();
+      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (recHitColl.product())->end();
+ 
+      SiStripRecHit2DCollection::DetSet stereo_detset = *recHitIdIterator;
 
-      SiStripRecHit2DCollection::const_iterator recHitIdIterator = (rphirechits_.product())->begin();
-      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd = (rphirechits_.product())->end();
+      SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = stereo_detset.begin();
+      SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = stereo_detset.end();
+      SiStripRecHit2DCollection::DetSet::const_iterator iterRecHit_;
+      
+      for (iterRecHit_ = rechitRangeIteratorBegin; 
+            iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit) {
 
-      for(SiStripRecHit2DCollection::const_iterator iterrechit_ = recHitIdIterator;
-        iterrechit_ != recHitIdIteratorEnd;
-        iterrechit_++) {
+        LocalPoint lp = iterRecHit_->localPosition();
+        stereo_x.push_back(lp.x());
+        stereo_y.push_back(lp.y());
+        stereo_z.push_back(lp.z());        
+      }
+    }*/
 
-          LocalPoint lp = iterrechit_->localPosition();
+    if((rphirechitColl_.product())->dataSize() > 0) {
+      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (recHitColl.product())->begin();
+      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (recHitColl.product())->end();
+      // SiStripRecHit2DCollection::const_iterator iterRecHit_; 
+
+      for(SiStripRecHit2DCollection::const_iterator detunit_iterator_ = recHitIdIterator;
+        detunit_iterator_ != recHitIdIteratorEnd; detunit_iterator_++) {
+        
+        SiStripRecHit2DCollection::DetSet detset = *detunit_iterator_;
+
+        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = detset.begin();
+        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = detset.end();
+        SiStripRecHit2DCollection::DetSet::const_iterator iterRecHit_;
+        
+        for (iterRecHit_ = rechitRangeIteratorBegin; 
+              iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit) {
+
+          LocalPoint lp = iterRecHit_->localPosition();
           rphi_x.push_back(lp.x());
           rphi_y.push_back(lp.y());
-          rphi_z.push_back(lp.z()); 
+          rphi_z.push_back(lp.z());        
+        }
       }
     }
+      
+    const SiPixelRecHitCollection *hits = pixelrechitColl_.product();
 
+    for(SiPixelRecHitCollection::DataContainer::const_iterator hit = hits->data().begin(),
+      end = hits->data().end(); hit != end; ++hit) {
 
+      /*
+      // Is this a different (x, y) location ?
 
+      std::vector< SiPixelCluster::Pixel > pixels(hit->cluster()->pixels());
+      bool pixelOnEdge = false;
+      for(std::vector< SiPixelCluster::Pixel >::const_iterator pixel = pixels.begin();
+          pixel != pixels.end(); ++pixel) {
+        int pixelX = pixel->x;
+        int pixelY = pixel->y;
+        
+        // Here lay code to check if it is an edge pixel
+
+      }*/
+
+      LocalPoint lp = hit->localPosition();
+      pixel_x.push_back(lp.x());
+      pixel_y.push_back(lp.y());
+      pixel_z.push_back(lp.z());
+    }
   // ------------------------------ Fill and Print the Tree -------------------------
 
   tree_->Fill();
