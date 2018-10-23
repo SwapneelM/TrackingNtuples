@@ -1,8 +1,8 @@
 <application>
   <component name="WebServers">
     <option name="servers">
-      <webServer id="04bce884-2ad5-4dcf-8d2f-89a2d963858c" name="CMG GPU" url="http://cmg-gpu1080.cern.ch">
-        <fileTransfer host="cmg-gpu1080.cern.ch" port="22" rootFolder="/data/ml/smehta/cmssw-hep/CMSSW_10_2_4_Patatrack/src " accessType="SFTP">
+      <webServer id="04bce884-2ad5-4dcf-8d2f-89a2d963858c" name="CMG GPU" url="http://localhost">
+        <fileTransfer explicitFtps="false" host="cmg-gpu1080.cern.ch" port="22" rootFolder="/data/ml/smehta" accessType="SFTP">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" />
           </advancedOptions>
