@@ -431,7 +431,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 
     // Different approach to iterating over the rphirechits
     
-    /*
+  /*
     if((stereorechitColl_.product())->dataSize() > 0) {
       SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (recHitColl.product())->begin();
       SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (recHitColl.product())->end();
