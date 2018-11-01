@@ -419,7 +419,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     // Print size of rphirechits
     std::cout << "RPhiRecHitColl Data Size: " << (rphirechitColl_.product())->dataSize();
     std::cout << "StereoRecHitColl Data Size: " << (stereorechitColl_.product())->dataSize();
-    std::cout << "PixelRecHitColl Data Size: " << (pixelrechitColl_.product())->dataSize();
+    // std::cout << "PixelRecHitColl Data Size: " << (pixelrechitColl_.product())->dataSize();
 
     // Iterate over rphirechits and check if the begin/end methods work
     /*for(std::vector<SiStripRecHit2D>::const_iterator hiter = rphirechits_.begin();
@@ -453,8 +453,8 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     }*/
 
     if((rphirechitColl_.product())->dataSize() > 0) {
-      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (recHitColl.product())->begin();
-      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (recHitColl.product())->end();
+      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (rphirechitColl_.product())->begin();
+      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (rphirechitColl_.product())->end();
       // SiStripRecHit2DCollection::const_iterator iterRecHit_; 
 
       for(SiStripRecHit2DCollection::const_iterator detunit_iterator_ = recHitIdIterator;
@@ -467,7 +467,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         SiStripRecHit2DCollection::DetSet::const_iterator iterRecHit_;
         
         for (iterRecHit_ = rechitRangeIteratorBegin; 
-              iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit) {
+              iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit_) {
 
           LocalPoint lp = iterRecHit_->localPosition();
           rphi_x.push_back(lp.x());
