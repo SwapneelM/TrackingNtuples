@@ -89,8 +89,11 @@ Description: [one line class summary]
 #include "SimDataFormats/TrackerDigiSimLink/interface/StripDigiSimLink.h"
 
 // Tracking Particle Clustering
-#include "SimDataFormats/Associations/interface/TrackToTrackingParticleAssociator.h"
+#include "SimTracker/TrackHistory/interface/TrackClassifier.h"
+#include "SimTracker/TrackerHitAssociation/interface/ClusterTPAssociation.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
+
+#include "SimDataFormats/Associations/interface/TrackToTrackingParticleAssociator.h"
 
 // TODO: Check if this is necessary
 // #include "DataFormats/TrackerRecHit2D/interface/Phase2TrackerRecHit1D.h"
@@ -150,6 +153,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> dsz_Error_;
       std::vector<double> dz_Error_;
       
+
       // Store the return values of parameter and 
       // covariance matrix functions
       reco::TrackBase::CovarianceMatrix covariance_mat_;
@@ -185,6 +189,10 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 
       edm::EDGetTokenT< reco::RecoToSimCollection > association_;
       // edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerRecHit1D> > siPhase2RecHitsToken_;
+
+      // Tracking Particle Association Code
+      edm::EDGetTokenT< ClusterTPAssociation > clusterTPMapToken_;
+      // TrackClassifier classifier_;
 
       std::vector<float> stereo_x;
       std::vector<float> stereo_y;
@@ -239,7 +247,9 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
 //  siPhase2RecHitsToken_(consumes<edm::DetSetVector<Phase2TrackerRecHit1D> >(iConfig.getParameter<edm::InputTag>("siPhase2RecHits"))),
   stereoRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
   siPixelRecHitsToken_(consumes<SiPixelRecHitCollection>(iConfig.getParameter<edm::InputTag>("siPixelRecHits"))),
-  association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("association")))
+  association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("association"))),
+  clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
+//  classifier_(iConfig, consumesCollector())
 {
     gROOT->Reset();
     usesResource("TFileService");
@@ -298,6 +308,12 @@ MyTrackingNtuples::~MyTrackingNtuples()
 {
     // do anything here that needs to be done at destruction time
     // (e.g. close files, deallocate resources etc.)
+}
+
+// Custom comparison function for Tracking Particle
+using P = std::pair<OmniClusterRef, TrackingParticleRef>;
+bool compare(const P& i, const P& j) {
+    return i.second.index() > j.second.index();
 }
 
 /*void MyTrackingNtuples::initNtuple(){
@@ -365,6 +381,12 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     edm::Handle<reco::RecoToSimCollection> association;
     iEvent.getByToken(association_, association);    
 
+    // Custom methods for Track Association
+    edm::Handle<ClusterTPAssociation> pCluster2TPListH;
+    iEvent.getByToken(clusterTPMapToken_, pCluster2TPListH);
+    const ClusterTPAssociation& clusterToTPMap = *pCluster2TPListH;
+
+
     for(size_t track_idx=0; track_idx<tracks_->size(); ++track_idx) {
         
         edm::RefToBase<reco::Track> trk_(tracks_, track_idx);
@@ -380,7 +402,13 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
               std::cout << "Match not found" << std::endl;
             //TODO
           }
-          
+        
+        // Custom methods for Track Association
+        auto clusterTPmap = clusterToTPMap.map();
+        std::sort(clusterTPmap.begin(), clusterTPmap.end(), compare);
+        auto clusterRange = std::equal_range(clusterTPmap.begin(), clusterTPmap.end(),std::make_pair(OmniClusterRef(), tracking_particle), compare);      
+        
+
         eta_.push_back(trk_->eta());
         eta_Error_.push_back(trk_->etaError());
         phi_.push_back(trk_->phi());
