@@ -1,7 +1,12 @@
 import FWCore.ParameterSet.Config as cms
+from SimTracker.TrackHistory.TrackClassifier_cff import *
+# from SimTracker.TrackAssociation.trackingParticleRecoTrackAsssociation_cfi import *
 
 def customize(process, outfile='outfile.root'):
-    '''Protable funtion to run our tracking ntuples in a RECOStep CMSSW config'''
+    '''Portable function to run the custom tracking ntuples in a RECOStep CMSSW config'''
+
+    process.load("SimTracker.TrackAssociation.trackingParticleRecoTrackAsssociation_cfi")
+
     process.TFileService = cms.Service(
         'TFileService',
         fileName=cms.string(outfile)
@@ -13,11 +18,19 @@ def customize(process, outfile='outfile.root'):
         matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
         rphiRecHits = cms.InputTag("siStripMatchedRecHits","rphiRecHit"),
         stereoRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHit"),
-        siPixelRecHits = cms.InputTag("siPixelRecHits")
+        siPixelRecHits = cms.InputTag("siPixelRecHits"),
+        associator = cms.InputTag('trackingParticleRecoTrackAsssociation')
     )
 
-    # Overriding the variables in track association
     process.trackingParticleRecoTrackAsssociation.label_tr = cms.InputTag("pixelTracks")
 
+    # Overriding the variables in track association
+    # This was obtained from the 'process.load' above
+    #process.trackreconstruction = process.trackingParticleRecoTrackAsssociation.clone(
+    #            associator = 'QuickTrackAssociatorByHits'
+    #            )
+
+
     process.reconstruction_pixelTrackingOnly *= process.reconstruction
+    # process.reconstruction_pixelTrackingOnly *= process.trackreconstruction
     process.reconstruction_pixelTrackingOnly *= process.ntuples

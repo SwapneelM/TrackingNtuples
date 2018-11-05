@@ -1,6 +1,5 @@
 // -*- C++ -*-
 //
-// Package:    TrackingNtuples/TrackingNtuples
 // Class:      TrackingNtuples
 //
 /**\class TrackingNtuples TrackingNtuples.cc TrackingNtuples/TrackingNtuples/plugins/TrackingNtuples.cc
@@ -247,8 +246,8 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
 //  siPhase2RecHitsToken_(consumes<edm::DetSetVector<Phase2TrackerRecHit1D> >(iConfig.getParameter<edm::InputTag>("siPhase2RecHits"))),
   stereoRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
   siPixelRecHitsToken_(consumes<SiPixelRecHitCollection>(iConfig.getParameter<edm::InputTag>("siPixelRecHits"))),
-  association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("association"))),
-  clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
+  association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("associator")))
+//  clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
 //  classifier_(iConfig, consumesCollector())
 {
     gROOT->Reset();
@@ -310,39 +309,21 @@ MyTrackingNtuples::~MyTrackingNtuples()
     // (e.g. close files, deallocate resources etc.)
 }
 
-// Custom comparison function for Tracking Particle
-using P = std::pair<OmniClusterRef, TrackingParticleRef>;
-bool compare(const P& i, const P& j) {
-    return i.second.index() > j.second.index();
-}
-
-/*void MyTrackingNtuples::initNtuple(){
-
-  LogInfo("Tracks") << " In initNtuple " ;
-
-  NStereoHits_ = -999 ;
-
-  for (int init = 0 ; init < myMaxHits ; ++init){
-    StereoHitX_[init] = -999.;
-    StereoHitY_[init] = -999.;
-    StereoHitZ_[init] = -999.;
-    StereoHitR_[init] = -999.;
-    StereoHitPhi_[init] = -999.;
-    StereoHitTheta_[init] = -999.;
-
-    StereoHitSignal_[init] = -999.;
-    StereoHitNoise_[init] = -999.;
-    StereoHitWidth_[init] = -999. ;
-  }
-}*/
 
 //
 // member functions
 //
 
 // ------------ method called for each event  ------------
-void
-MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+// Custom comparison function for Tracking Particle
+/*
+using P = std::pair<OmniClusterRef, TrackingParticleRef>;
+bool compare(const P& i, const P& j) {
+    return i.second.index() > j.second.index();
+}
+*/
+
+void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     using namespace edm;
     using namespace std;
@@ -382,10 +363,11 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     iEvent.getByToken(association_, association);    
 
     // Custom methods for Track Association
+    /*
     edm::Handle<ClusterTPAssociation> pCluster2TPListH;
     iEvent.getByToken(clusterTPMapToken_, pCluster2TPListH);
     const ClusterTPAssociation& clusterToTPMap = *pCluster2TPListH;
-
+    */
 
     for(size_t track_idx=0; track_idx<tracks_->size(); ++track_idx) {
         
@@ -397,17 +379,31 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
             auto tracking_particle = gen_match->val.front().first;
             std::cout << "Tracking Particle PDG ID: " << tracking_particle->pdgId() << std::endl;
             std::cout << "Tracking Particle Index " << tracking_particle.index() << std::endl;
-            tracking_particle->trackPSimHit();
+            // tracking_particle->trackPSimHit();
+            // Custom methods for Track Association
+            /*
+
+            auto clusterTPmap = clusterToTPMap.map();
+            std::sort(clusterTPmap.begin(), clusterTPmap.end(), compare);
+            auto clusterRange = std::equal_range(clusterTPmap.begin(), clusterTPmap.end(),std::make_pair(OmniClusterRef(), tracking_particle), compare);      
+           
+            int TrkTruthnHitAll=-1;
+            int TrkTruthnHitPixel=-1;
+            int TrkTruthnHitStrip=-1;
+       
+            if( clusterRange.first != clusterRange.second ) {
+                for( auto ip=clusterRange.first; ip != clusterRange.second; ++ip ) {
+                    const OmniClusterRef& cluster = ip->first;
+                    if (cluster.isPixel() && cluster.isValid()){ TrkTruthnHitPixel+=1;}
+                    if (cluster.isStrip() && cluster.isValid()){ TrkTruthnHitStrip+=1;}
+            }
+             TrkTruthnHitAll = TrkTruthnHitPixel + TrkTruthnHitStrip;
+             std::cout << "All hits: " << TrkTruthnHitAll << std::endl;
+          */
           } else { //no matching
               std::cout << "Match not found" << std::endl;
             //TODO
           }
-        
-        // Custom methods for Track Association
-        auto clusterTPmap = clusterToTPMap.map();
-        std::sort(clusterTPmap.begin(), clusterTPmap.end(), compare);
-        auto clusterRange = std::equal_range(clusterTPmap.begin(), clusterTPmap.end(),std::make_pair(OmniClusterRef(), tracking_particle), compare);      
-        
 
         eta_.push_back(trk_->eta());
         eta_Error_.push_back(trk_->etaError());
