@@ -15,6 +15,9 @@ def customize(process, outfile='outfile.root'):
         stereoRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHit"),
         siPixelRecHits = cms.InputTag("siPixelRecHits")
     )
-    
+
+    # Overriding the variables in track association
+    process.trackingParticleRecoTrackAsssociation.label_tr = cms.InputTag("pixelTracks")
+
     process.reconstruction_pixelTrackingOnly *= process.reconstruction
     process.reconstruction_pixelTrackingOnly *= process.ntuples
