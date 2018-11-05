@@ -68,10 +68,29 @@ Description: [one line class summary]
 #include "DataFormats/TrajectorySeed/interface/TrajectorySeedCollection.h"
 #include "DataFormats/TrackCandidate/interface/TrackCandidateCollection.h"
 
+#include "TrackingTools/TransientTrackingRecHit/interface/TransientTrackingRecHit.h"
+#include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
+
 // Include the library file required for localpoint
 #include "DataFormats/GeometrySurface/interface/GloballyPositioned.h"
 
 // #include "DataFormats/Common/interface/DetSet.h"
+
+// Include the Dataformat for track association
+#include "DataFormats/RecoCandidate/interface/TrackAssociation.h"
+
+// Include data format for simhits
+#include "SimDataFormats/TrackingHit/interface/PSimHit.h"
+#include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
+
+#include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/SiPixelDigi/interface/PixelDigi.h"
+#include "SimDataFormats/TrackerDigiSimLink/interface/PixelDigiSimLink.h"
+#include "SimDataFormats/TrackerDigiSimLink/interface/StripDigiSimLink.h"
+
+// Tracking Particle Clustering
+#include "SimDataFormats/Associations/interface/TrackToTrackingParticleAssociator.h"
+#include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
 // TODO: Check if this is necessary
 // #include "DataFormats/TrackerRecHit2D/interface/Phase2TrackerRecHit1D.h"
@@ -108,7 +127,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       int nrun_ = 0;
 
       //used to select what tracks to read from configuration file
-      edm::EDGetTokenT<reco::TrackCollection> tracksToken_; 
+      edm::EDGetTokenT<edm::View<reco::Track> > tracksToken_; 
       
       //used to select extra track information to read 
       edm::EDGetTokenT<reco::TrackExtraCollection> trackExtraToken_;
@@ -117,11 +136,19 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       TTree *tree_;
       
       // Track properties
-      std::vector<double> jet_eta_;
-      std::vector<double> jet_phi_;
+      std::vector<double> eta_;
+      std::vector<double> phi_;
       std::vector<double> qoverp_;
       std::vector<double> dxy_;
       std::vector<double> dsz_;
+      std::vector<double> dz_;
+      
+      std::vector<double> eta_Error_;
+      std::vector<double> phi_Error_;
+      std::vector<double> qoverp_Error_;
+      std::vector<double> dxy_Error_;
+      std::vector<double> dsz_Error_;
+      std::vector<double> dz_Error_;
       
       // Store the return values of parameter and 
       // covariance matrix functions
@@ -154,6 +181,9 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       edm::EDGetTokenT< SiStripRecHit2DCollection > rphiRecHitToken_;
       edm::EDGetTokenT< SiStripRecHit2DCollection > stereoRecHitToken_;
       edm::EDGetTokenT< SiPixelRecHitCollection > siPixelRecHitsToken_;
+      // edm::EDGetTokenT< edm::AssociationMap< edm::OneToManyWithQualityGeneric< edm::View< reco::Track >, TrackingParticleCollection, double > > > association_;
+
+      edm::EDGetTokenT< reco::RecoToSimCollection > association_;
       // edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerRecHit1D> > siPhase2RecHitsToken_;
 
       std::vector<float> stereo_x;
@@ -174,8 +204,8 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 
       // TODO: Try using a struct to save time and effort
       struct customEventData {  
-          std::vector<double> jet_eta_;
-          std::vector<double> jet_phi_;
+          std::vector<double> eta_;
+          std::vector<double> phi_;
           std::vector<double> qoverp_;
           std::vector<double> dxy_;
           std::vector<double> dsz_;
@@ -199,7 +229,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
 //  src_(iConfig.getParameter<edm::InputTag>( "src" )),
-  tracksToken_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
+  tracksToken_(consumes< edm::View<reco::Track> >(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
 //  rphiRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),
 //  stereoRecHits_(consumes<std::vector<SiStripRecHit2D>&>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
@@ -208,7 +238,8 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
   rphiRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),   
 //  siPhase2RecHitsToken_(consumes<edm::DetSetVector<Phase2TrackerRecHit1D> >(iConfig.getParameter<edm::InputTag>("siPhase2RecHits"))),
   stereoRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
-  siPixelRecHitsToken_(consumes<SiPixelRecHitCollection>(iConfig.getParameter<edm::InputTag>("siPixelRecHits")))
+  siPixelRecHitsToken_(consumes<SiPixelRecHitCollection>(iConfig.getParameter<edm::InputTag>("siPixelRecHits"))),
+  association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("association")))
 {
     gROOT->Reset();
     usesResource("TFileService");
@@ -219,12 +250,18 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("nlumi", &nlumi_, "nlumi/I");
     tree_->Branch("nrun", &nrun_, "nrun/I");
     
-    tree_->Branch("jeteta", &jet_eta_, "jeteta/D");
-    tree_->Branch("jetphi", &jet_phi_, "jetphi/D");
-    tree_->Branch("qoverp", &jet_eta_, "qoverp/D");
+    tree_->Branch("jeteta", &eta_, "jeteta/D");
+    tree_->Branch("jetphi", &phi_, "jetphi/D");
+    tree_->Branch("qoverp", &eta_, "qoverp/D");
     tree_->Branch("dxy", &dxy_);
     tree_->Branch("dsz", &dsz_);
 
+    tree_->Branch("jetetaError", &eta_Error_, "jeteta/D");
+    tree_->Branch("jetphiError", &phi_Error_, "jetphi/D");
+    tree_->Branch("qoverpError", &eta_Error_, "qoverp/D");
+    tree_->Branch("dxyError", &dxy_Error_);
+    tree_->Branch("dszError", &dsz_Error_);
+    
     tree_->Branch("trackparameters", &track_parameters_);
     tree_->Branch("covariancearray", &covariance_array_);
 
@@ -253,8 +290,6 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     // siRphiHitCollection_ = iConfig.getParameter<std::string>("siRphiHitCollection");
     // siStereoHitCollection_ = iConfig.getParameter<std::string>("siStereoHitCollection");
     // siMatchedHitCollection_ = iConfig.getParameter<std::string>("siMatchedHitCollection");
-
-
 
 }
 
@@ -297,9 +332,9 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     using namespace std;
     using namespace reco;
 
-    nevent_=iEvent.id().event();
-    nlumi_=iEvent.id().luminosityBlock();
-    nrun_=iEvent.id().run();
+    nevent_ = iEvent.id().event();
+    nlumi_ = iEvent.id().luminosityBlock();
+    nrun_ = iEvent.id().run();
     
     std::cout << "Event Number: " << nevent_ << std::endl;
     std::cout << "Luminosity Block: " << nlumi_ << std::endl;
@@ -308,35 +343,59 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     // Set a counter to check the number of hits
     int numtracks_ = 0;
     
-    jet_eta_.clear();
-    jet_phi_.clear();
+    eta_.clear();
+    eta_Error_.clear();
+    phi_.clear();
+    phi_Error_.clear();
     qoverp_.clear();
-    dsz_.clear();
+    qoverp_Error_.clear();
     dxy_.clear();
+    dxy_Error_.clear();
+    dsz_.clear();
+    dsz_Error_.clear();
 
     // TODO: Is this clearing the internal vectors 
     // as well as the container?
     covariance_array_.clear();
 
     // Get the information from the pixeltrack branches
-    Handle<reco::TrackCollection> tracks_;
+    Handle< edm::View<reco::Track> > tracks_;
     iEvent.getByToken(tracksToken_, tracks_);
 
-    for(reco::TrackCollection::const_iterator itTrack_ = tracks_->begin();
-        itTrack_ != tracks_->end(); 
-        ++itTrack_) {
+    edm::Handle<reco::RecoToSimCollection> association;
+    iEvent.getByToken(association_, association);    
 
-        reco::Track trk_ = *itTrack_;
+    for(size_t track_idx=0; track_idx<tracks_->size(); ++track_idx) {
         
-        jet_eta_.push_back(trk_.eta());
-        jet_phi_.push_back(trk_.phi());
-        qoverp_.push_back(trk_.qoverp());
-        dsz_.push_back(trk_.dsz());
-        dxy_.push_back(trk_.dxy());
-        std::cout << "Jet Data: " << trk_.eta() << trk_.phi() << trk_.qoverp() << trk_.dxy() << trk_.dsz() << std::endl;
+        edm::RefToBase<reco::Track> trk_(tracks_, track_idx);
         
-        covariance_mat_ = trk_.covariance();
-        track_parameters_ = trk_.parameters();
+          //tracking particle matching
+          auto gen_match = association->find(trk_);
+          if(gen_match != association->end()) {
+            auto tracking_particle = gen_match->val.front().first;
+            std::cout << "Tracking Particle PDG ID: " << tracking_particle->pdgId() << std::endl;
+            std::cout << "Tracking Particle Index " << tracking_particle.index() << std::endl;
+            tracking_particle->trackPSimHit();
+          } else { //no matching
+              std::cout << "Match not found" << std::endl;
+            //TODO
+          }
+          
+        eta_.push_back(trk_->eta());
+        eta_Error_.push_back(trk_->etaError());
+        phi_.push_back(trk_->phi());
+        phi_Error_.push_back(trk_->phi());
+        qoverp_.push_back(trk_->qoverp());
+        dsz_.push_back(trk_->dsz());
+        dsz_Error_.push_back(trk_->dszError());
+        dxy_.push_back(trk_->dxy());
+        dxy_Error_.push_back(trk_->dxyError());
+        dz_.push_back(trk_->dz());
+        dz_Error_.push_back(trk_->dzError());
+        // std::cout << "Jet Data: " << trk_->eta() << trk_->phi() << trk_->qoverp() << trk_->dxy() << trk_->dsz() << std::endl;
+        
+        covariance_mat_ = trk_->covariance();
+        track_parameters_ = trk_->parameters();
 
         // TODO #1: Figure out how to store covariance
         // matrix in the TTree - Ntuples?
@@ -362,7 +421,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
           // std::cout << std::endl;
         }
 
-        std::cout << "Reshaped Covariance Matrix: " << reshaped_cov_mat_.size() << std::endl;
+        // std::cout << "Reshaped Covariance Matrix: " << reshaped_cov_mat_.size() << std::endl;
         for (int i_ = 0; (unsigned)i_ < reshaped_cov_mat_.size(); i_++) {
             std::cout << reshaped_cov_mat_.at(i_) << " ";
         }
@@ -417,9 +476,9 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     // initNtuple();
 
     // Print size of rphirechits
-    std::cout << "RPhiRecHitColl Data Size: " << (rphirechitColl_.product())->dataSize();
-    std::cout << "StereoRecHitColl Data Size: " << (stereorechitColl_.product())->dataSize();
-    std::cout << "PixelRecHitColl Data Size: " << (pixelrechitColl_.product())->dataSize();
+    std::cout << "RPhiRecHitColl Data Size: " << (rphirechitColl_.product())->dataSize() << std::endl;
+    std::cout << "StereoRecHitColl Data Size: " << (stereorechitColl_.product())->dataSize() << std::endl;
+    std::cout << "PixelRecHitColl Data Size: " << (pixelrechitColl_.product())->dataSize() << std::endl;
 
     // Iterate over rphirechits and check if the begin/end methods work
     /*for(std::vector<SiStripRecHit2D>::const_iterator hiter = rphirechits_.begin();
@@ -453,8 +512,8 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     }*/
 
     if((rphirechitColl_.product())->dataSize() > 0) {
-      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (recHitColl.product())->begin();
-      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (recHitColl.product())->end();
+      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (rphirechitColl_.product())->begin();
+      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (rphirechitColl_.product())->end();
       // SiStripRecHit2DCollection::const_iterator iterRecHit_; 
 
       for(SiStripRecHit2DCollection::const_iterator detunit_iterator_ = recHitIdIterator;
@@ -467,7 +526,7 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         SiStripRecHit2DCollection::DetSet::const_iterator iterRecHit_;
         
         for (iterRecHit_ = rechitRangeIteratorBegin; 
-              iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit) {
+              iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit_) {
 
           LocalPoint lp = iterRecHit_->localPosition();
           rphi_x.push_back(lp.x());
@@ -504,7 +563,9 @@ MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   // ------------------------------ Fill and Print the Tree -------------------------
 
   tree_->Fill();
-  tree_->Print();
+  
+  std::cout << "Tree filled" << std::endl;
+  // tree_->Print();
 }
 
 
@@ -522,22 +583,22 @@ MyTrackingNtuples::beginJob()
 void
 MyTrackingNtuples::endJob()
 {
-    tree_->Write();
-    tree_->ResetBranchAddresses();
+    // fs_->Write();
     
     // The Covariance Matrix and Track Parameters are cleared by gROOT->Reset()
     tmpMatrix.swap(covariance_array_);
 
-    tmpVector1.swap(jet_eta_);
-    tmpVector2.swap(jet_phi_);
+    /*
+    tmpVector1.swap(eta_);
+    tmpVector2.swap(phi_);
     tmpVector3.swap(qoverp_);
     tmpVector4.swap(dxy_);
     tmpVector5.swap(dsz_);
-    /*
+    
     TVectorD tmpVector1;
-    tmpVector1.swap(jet_eta_);
+    tmpVector1.swap(eta_);
     TVectorD tmpVector2;
-    tmpVector2.swap(jet_phi_);
+    tmpVector2.swap(phi_);
     TVectorD tmpVector3;
     tmpVector3.swap(qoverp_);
     */
