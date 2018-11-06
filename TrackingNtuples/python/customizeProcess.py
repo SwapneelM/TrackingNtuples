@@ -34,9 +34,9 @@ def customize(process, outfile='outfile.root'):
     )
     '''
     process.reconstruction_pixelTrackingOnly *= process.reconstruction
-    process.reconstruction_pixelTrackingOnly *= process.ntuples
+    process.reconstruction_pixelTrackingOnly *= process.quickTrackAssociatorByHits
     process.reconstruction_pixelTrackingOnly *= process.swapneelAssociator
-
+    process.reconstruction_pixelTrackingOnly *= process.ntuples
 
     # Overriding the variables in track association
     # This was obtained from the 'process.load' above
