@@ -1,5 +1,9 @@
 import FWCore.ParameterSet.Config as cms
 # from SimTracker.TrackHistory.TrackClassifier_cff import *
+
+# This is needed to find the "quickTrackAssociatorByHits"
+from SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi import *
+
 from SimTracker.TrackAssociation.trackingParticleRecoTrackAsssociation_cfi import *
 
 def customize(process, outfile='outfile.root'):
