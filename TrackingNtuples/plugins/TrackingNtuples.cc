@@ -517,51 +517,56 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
     // Different approach to iterating over the rphirechits
     if((stereorechitColl_.product())->dataSize() > 0) {
-      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (stereorechitColl_.product())->begin();
-      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (stereorechitColl_.product())->end();
- 
-      SiStripRecHit2DCollection::DetSet stereo_detset = *recHitIdIterator;
-
-      SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = stereo_detset.begin();
-      SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = stereo_detset.end();
-      SiStripRecHit2DCollection::const_iterator iterRecHit__;
+      SiStripRecHit2DCollection::const_iterator stereorecHitIdIterator      = (stereorechitColl_.product())->begin();
+      SiStripRecHit2DCollection::const_iterator stereorecHitIdIteratorEnd   = (stereorechitColl_.product())->end();
       
-      for (iterRecHit__ = rechitRangeIteratorBegin; 
-            iterRecHit__ != rechitRangeIteratorEnd; ++iterRecHit__) {
+      for(SiStripRecHit2DCollection::const_iterator stereo_detunit_iterator_ = stereorecHitIdIterator;
+        stereo_detunit_iterator_ != stereorecHitIdIteratorEnd; stereo_detunit_iterator_++) {
+        
+        SiStripRecHit2DCollection::DetSet stereo_detset_ = *stereo_detunit_iterator_;
 
-        LocalPoint lp = iterRecHit__->localPosition();
-        stereo_x.push_back(lp.x());
-        stereo_y.push_back(lp.y());
-        stereo_z.push_back(lp.z());        
+        SiStripRecHit2DCollection::DetSet::const_iterator stereorechitRangeIteratorBegin = stereo_detset_.begin();
+        SiStripRecHit2DCollection::DetSet::const_iterator stereorechitRangeIteratorEnd   = stereo_detset_.end();
+        SiStripRecHit2DCollection::DetSet::const_iterator stereo_iterRecHit_;
+        
+        for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
+              stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
+
+          SiStripCluster const& stereo_cluster = rphi_iterRecHit_->stripCluster();
+
+          LocalPoint stereo_lp = stereo_iterRecHit_->localPosition();
+          stereo_x.push_back(stereo_lp.x());
+          stereo_y.push_back(stereo_lp.y());
+          stereo_z.push_back(stereo_lp.z());        
+        }
       }
     }
 
     if((rphirechitColl_.product())->dataSize() > 0) {
-      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (rphirechitColl_.product())->begin();
-      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (rphirechitColl_.product())->end();
-      // SiStripRecHit2DCollection::const_iterator iterRecHit_; 
+      SiStripRecHit2DCollection::const_iterator rphirecHitIdIterator      = (rphirechitColl_.product())->begin();
+      SiStripRecHit2DCollection::const_iterator rphirecHitIdIteratorEnd   = (rphirechitColl_.product())->end();
 
-      for(SiStripRecHit2DCollection::const_iterator detunit_iterator_ = recHitIdIterator;
-        detunit_iterator_ != recHitIdIteratorEnd; detunit_iterator_++) {
+      for(SiStripRecHit2DCollection::const_iterator rphi_detunit_iterator_ = rphirecHitIdIterator;
+        rphi_detunit_iterator_ != rphirecHitIdIteratorEnd; rphi_detunit_iterator_++) {
         
-        SiStripRecHit2DCollection::DetSet detset = *detunit_iterator_;
+        SiStripRecHit2DCollection::DetSet rphi_detset = *detunit_iterator_;
 
-        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = detset.begin();
-        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = detset.end();
-        SiStripRecHit2DCollection::DetSet::const_iterator iterRecHit_;
+        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = rphi_detset.begin();
+        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = rphi_detset.end();
+        SiStripRecHit2DCollection::DetSet::const_iterator rphi_iterRecHit_;
         
-        for (iterRecHit_ = rechitRangeIteratorBegin; 
-              iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit_) {
+        for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
+              rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
           
           // Test get rechit cluster
           // SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
-		  // std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
-		  const SiStripCluster &cluster = iterRecHit_->stripCluster();
+		      // std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
+		      const SiStripCluster& rphi_cluster = rphi_iterRecHit_->stripCluster();
           
-	      LocalPoint lp = iterRecHit_->localPosition();
-          rphi_x.push_back(lp.x());
-          rphi_y.push_back(lp.y());
-          rphi_z.push_back(lp.z());        
+	        LocalPoint rphi_lp = rphi_iterRecHit_->localPosition();
+          rphi_x.push_back(rphi_lp.x());
+          rphi_y.push_back(rphi_lp.y());
+          rphi_z.push_back(rphi_lp.z());        
         }
       }
     }
@@ -584,8 +589,9 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         // Here lay code to check if it is an edge pixel
 
       }*/
-	  	
-	  LocalPoint lp = hit->localPosition();
+	  	SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
+
+	    LocalPoint lp = hit->localPosition();
       pixel_x.push_back(lp.x());
       pixel_y.push_back(lp.y());
       pixel_z.push_back(lp.z());
