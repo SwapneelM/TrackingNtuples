@@ -532,7 +532,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
               stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
 
-          SiStripCluster const& stereo_cluster = rphi_iterRecHit_->stripCluster();
+          SiStripCluster const& stereo_cluster = stereo_iterRecHit_->stripCluster();
 
           LocalPoint stereo_lp = stereo_iterRecHit_->localPosition();
           stereo_x.push_back(stereo_lp.x());
@@ -549,7 +549,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
       for(SiStripRecHit2DCollection::const_iterator rphi_detunit_iterator_ = rphirecHitIdIterator;
         rphi_detunit_iterator_ != rphirecHitIdIteratorEnd; rphi_detunit_iterator_++) {
         
-        SiStripRecHit2DCollection::DetSet rphi_detset = *detunit_iterator_;
+        SiStripRecHit2DCollection::DetSet rphi_detset = *rphi_detunit_iterator_;
 
         SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = rphi_detset.begin();
         SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = rphi_detset.end();
@@ -589,7 +589,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         // Here lay code to check if it is an edge pixel
 
       }*/
-	  	SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
+	  	SiPixelRecHit::ClusterRef const& clust = hit->cluster();
 
 	    LocalPoint lp = hit->localPosition();
       pixel_x.push_back(lp.x());

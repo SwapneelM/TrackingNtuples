@@ -22,7 +22,7 @@ def customize(process, outfile='outfile.root'):
         stereoRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHit"),
         siPixelRecHits = cms.InputTag("siPixelRecHits"),
         # associator = cms.InputTag("trackingParticleRecoTrackAsssociation")
-        associator = "swapneelAssociator"
+        associator = cms.InputTag("swapneelAssociator")
     )
     process.swapneelAssociator = process.trackingParticleRecoTrackAsssociation.clone(
                                     label_tr = cms.InputTag("pixelTracks")
@@ -47,4 +47,4 @@ def customize(process, outfile='outfile.root'):
 
      process.reconstruction_pixelTrackingOnly *= process.trackreconstruction
     '''
-    
+
