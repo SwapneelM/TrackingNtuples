@@ -94,6 +94,9 @@ Description: [one line class summary]
 
 #include "SimDataFormats/Associations/interface/TrackToTrackingParticleAssociator.h"
 
+// Possibly needed for the SiPixelCluster definition
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusterData.h"
+
 // TODO: Check if this is necessary
 // #include "DataFormats/TrackerRecHit2D/interface/Phase2TrackerRecHit1D.h"
 // #include "DataFormats/TrackerRecHit2D/interface/TkCloner.h"
@@ -513,27 +516,25 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     std::cout << std::endl;*/
 
     // Different approach to iterating over the rphirechits
-    
-  /*
     if((stereorechitColl_.product())->dataSize() > 0) {
-      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (recHitColl.product())->begin();
-      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (recHitColl.product())->end();
+      SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (stereorechitColl_.product())->begin();
+      SiStripRecHit2DCollection::const_iterator recHitIdIteratorEnd   = (stereorechitColl_.product())->end();
  
       SiStripRecHit2DCollection::DetSet stereo_detset = *recHitIdIterator;
 
       SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = stereo_detset.begin();
       SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = stereo_detset.end();
-      SiStripRecHit2DCollection::DetSet::const_iterator iterRecHit_;
+      SiStripRecHit2DCollection::const_iterator iterRecHit__;
       
-      for (iterRecHit_ = rechitRangeIteratorBegin; 
-            iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit) {
+      for (iterRecHit__ = rechitRangeIteratorBegin; 
+            iterRecHit__ != rechitRangeIteratorEnd; ++iterRecHit__) {
 
-        LocalPoint lp = iterRecHit_->localPosition();
+        LocalPoint lp = iterRecHit__->localPosition();
         stereo_x.push_back(lp.x());
         stereo_y.push_back(lp.y());
         stereo_z.push_back(lp.z());        
       }
-    }*/
+    }
 
     if((rphirechitColl_.product())->dataSize() > 0) {
       SiStripRecHit2DCollection::const_iterator recHitIdIterator      = (rphirechitColl_.product())->begin();
@@ -551,8 +552,13 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         
         for (iterRecHit_ = rechitRangeIteratorBegin; 
               iterRecHit_ != rechitRangeIteratorEnd; ++iterRecHit_) {
-
-          LocalPoint lp = iterRecHit_->localPosition();
+          
+          // Test get rechit cluster
+          // SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
+		  // std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
+		  const SiStripCluster &cluster = iterRecHit_->stripCluster();
+          
+	      LocalPoint lp = iterRecHit_->localPosition();
           rphi_x.push_back(lp.x());
           rphi_y.push_back(lp.y());
           rphi_z.push_back(lp.z());        
@@ -578,8 +584,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         // Here lay code to check if it is an edge pixel
 
       }*/
-
-      LocalPoint lp = hit->localPosition();
+	  	
+	  LocalPoint lp = hit->localPosition();
       pixel_x.push_back(lp.x());
       pixel_y.push_back(lp.y());
       pixel_z.push_back(lp.z());
