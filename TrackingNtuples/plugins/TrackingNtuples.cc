@@ -97,6 +97,9 @@ Description: [one line class summary]
 // Possibly needed for the SiPixelCluster definition
 #include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusterData.h"
 
+// Required for the Tracking Parrticle Association
+#include "DataFormats/TrackerRecHit2D/interface/OmniClusterRef.h"
+
 // TODO: Check if this is necessary
 // #include "DataFormats/TrackerRecHit2D/interface/Phase2TrackerRecHit1D.h"
 // #include "DataFormats/TrackerRecHit2D/interface/TkCloner.h"
@@ -249,8 +252,8 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
 //  siPhase2RecHitsToken_(consumes<edm::DetSetVector<Phase2TrackerRecHit1D> >(iConfig.getParameter<edm::InputTag>("siPhase2RecHits"))),
   stereoRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
   siPixelRecHitsToken_(consumes<SiPixelRecHitCollection>(iConfig.getParameter<edm::InputTag>("siPixelRecHits"))),
-  association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("associator")))
-//  clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
+  association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("associator"))),
+  clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
 //  classifier_(iConfig, consumesCollector())
 {
     gROOT->Reset();
@@ -319,12 +322,10 @@ MyTrackingNtuples::~MyTrackingNtuples()
 
 // ------------ method called for each event  ------------
 // Custom comparison function for Tracking Particle
-/*
 using P = std::pair<OmniClusterRef, TrackingParticleRef>;
 bool compare(const P& i, const P& j) {
     return i.second.index() > j.second.index();
 }
-*/
 
 void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
@@ -366,11 +367,9 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     iEvent.getByToken(association_, association);    
 
     // Custom methods for Track Association
-    /*
     edm::Handle<ClusterTPAssociation> pCluster2TPListH;
     iEvent.getByToken(clusterTPMapToken_, pCluster2TPListH);
     const ClusterTPAssociation& clusterToTPMap = *pCluster2TPListH;
-    */
 
     for(size_t track_idx=0; track_idx<tracks_->size(); ++track_idx) {
         
@@ -380,11 +379,10 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
           auto gen_match = association->find(trk_);
           if(gen_match != association->end()) {
             auto tracking_particle = gen_match->val.front().first;
-            std::cout << "Tracking Particle PDG ID: " << tracking_particle->pdgId() << std::endl;
-            std::cout << "Tracking Particle Index " << tracking_particle.index() << std::endl;
+            std::cout << "TP PDG ID: " << tracking_particle->pdgId() << std::endl;
+            std::cout << "TP Index " << tracking_particle.index() << std::endl;
             // tracking_particle->trackPSimHit();
             // Custom methods for Track Association
-            /*
 
             auto clusterTPmap = clusterToTPMap.map();
             std::sort(clusterTPmap.begin(), clusterTPmap.end(), compare);
@@ -402,8 +400,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             }
              TrkTruthnHitAll = TrkTruthnHitPixel + TrkTruthnHitStrip;
              std::cout << "All hits: " << TrkTruthnHitAll << std::endl;
-          */
-          } else { //no matching
+          
+		  } else { //no matching
               std::cout << "Match not found" << std::endl;
             //TODO
           }
@@ -426,6 +424,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
         // TODO #1: Figure out how to store covariance
         // matrix in the TTree - Ntuples?
+        // Edit: DONE -> std::vector< double >
 
         std::cout << "Track Parameters: ";
         // Print the collected parameters from the parameter set
@@ -472,7 +471,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     // Get the extra information from the pixeltrack branches
     Handle<reco::TrackExtraCollection> trackExtra_;
     iEvent.getByToken(trackExtraToken_, trackExtra_);
-
+            
     /*  for(reco::TrackExtraCollection::const_iterator itTrackExtra_ = trackExtra_->begin();
         itTrackExtra_ != trackExtra_->end();
         ++itTrackExtra_) {

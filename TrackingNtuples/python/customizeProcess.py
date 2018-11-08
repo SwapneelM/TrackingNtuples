@@ -22,7 +22,8 @@ def customize(process, outfile='outfile.root'):
         stereoRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHit"),
         siPixelRecHits = cms.InputTag("siPixelRecHits"),
         # associator = cms.InputTag("trackingParticleRecoTrackAsssociation")
-        associator = cms.InputTag("swapneelAssociator")
+        associator = cms.InputTag("swapneelAssociator"),
+        clusterTPMap = cms.InputTag("tpClusterProducer")
     )
     process.swapneelAssociator = process.trackingParticleRecoTrackAsssociation.clone(
                                     label_tr = cms.InputTag("pixelTracks")
