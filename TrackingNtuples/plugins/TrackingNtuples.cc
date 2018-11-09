@@ -115,6 +115,7 @@ Description: [one line class summary]
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 */
+
 //
 // class declaration
 //
@@ -128,6 +129,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       virtual void beginJob() override;
       virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
       virtual void endJob() override;
+//      static bool compare(const std::pair<OmniClusterRef, TrackingParticleRef>&, const std::pair<OmniClusterRef, TrackingParticleRef>&);
 
       // ----------member data ---------------------------
       int nevent_ = 0;
@@ -236,6 +238,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
 // static data member definitions
 //
 
+
 //
 // constructors and destructor
 //
@@ -320,12 +323,16 @@ MyTrackingNtuples::~MyTrackingNtuples()
 // member functions
 //
 
-// ------------ method called for each event  ------------
 // Custom comparison function for Tracking Particle
-using P = std::pair<OmniClusterRef, TrackingParticleRef>;
-bool compare(const P& i, const P& j) {
+// using P = std::pair<OmniClusterRef, TrackingParticleRef>;
+
+/*
+static bool MyTrackingNtuples::compare(const std::pair<OmniClusterRef, TrackingParticleRef>& i, const std::pair<OmniClusterRef, TrackingParticleRef>& j) {
     return i.second.index() > j.second.index();
 }
+*/
+
+// ------------ method called for each event  ------------
 
 void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
@@ -366,7 +373,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     edm::Handle<reco::RecoToSimCollection> association;
     iEvent.getByToken(association_, association);    
 
-    // Custom methods for Track Association
+    // Retrieving Cluster to Tracking Particle Association
     edm::Handle<ClusterTPAssociation> pCluster2TPListH;
     iEvent.getByToken(clusterTPMapToken_, pCluster2TPListH);
     const ClusterTPAssociation& clusterToTPMap = *pCluster2TPListH;
@@ -375,7 +382,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         
         edm::RefToBase<reco::Track> trk_(tracks_, track_idx);
         
-          //tracking particle matching
+          //find the tracking particle based on the track
           auto gen_match = association->find(trk_);
           if(gen_match != association->end()) {
             auto tracking_particle = gen_match->val.front().first;
@@ -384,6 +391,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             // tracking_particle->trackPSimHit();
             // Custom methods for Track Association
 
+            /*
             auto clusterTPmap = clusterToTPMap.map();
             std::sort(clusterTPmap.begin(), clusterTPmap.end(), compare);
             auto clusterRange = std::equal_range(clusterTPmap.begin(), clusterTPmap.end(),std::make_pair(OmniClusterRef(), tracking_particle), compare);      
@@ -400,12 +408,15 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             }
              TrkTruthnHitAll = TrkTruthnHitPixel + TrkTruthnHitStrip;
              std::cout << "All hits: " << TrkTruthnHitAll << std::endl;
-          
+            */
+
 		  } else { //no matching
               std::cout << "Match not found" << std::endl;
             //TODO
           }
-
+        
+        // Add all the Track parameters and corresponding errors to the vectors
+        // to be put into the TTree
         eta_.push_back(trk_->eta());
         eta_Error_.push_back(trk_->etaError());
         phi_.push_back(trk_->phi());
@@ -469,6 +480,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     numtracks_ = 0;
     
     // Get the extra information from the pixeltrack branches
+    // We haven't really done anything with this though
     Handle<reco::TrackExtraCollection> trackExtra_;
     iEvent.getByToken(trackExtraToken_, trackExtra_);
             
@@ -487,7 +499,10 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
     // int pixelcounter_ = 0;
     // int stripcounter_ = 0;
-
+    
+    // Find the collections of rechits and pixelhits
+    // TODO: We don't need pixel hits since we already have the tracks
+    // Remove the last part corresponding to pixel hits
     edm::Handle<SiPixelRecHitCollection> pixelrechitColl_;
     edm::Handle<SiStripRecHit2DCollection> rphirechitColl_;
     edm::Handle<SiStripRecHit2DCollection> stereorechitColl_;
@@ -498,7 +513,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     iEvent.getByToken(stereoRecHitToken_, stereorechitColl_);
     iEvent.getByToken(matchedRecHitToken_, matchedrechitColl_);
     
-    // Write a function that initializes the value of all of the variables 
+    // TODO: Write a function that initializes the value of all of the variables 
     // initNtuple();
 
     // Print size of rphirechits
@@ -514,7 +529,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     }
     std::cout << std::endl;*/
 
-    // Different approach to iterating over the rphirechits
+    // Different approach to iterating over the stereorechits
     if((stereorechitColl_.product())->dataSize() > 0) {
       SiStripRecHit2DCollection::const_iterator stereorecHitIdIterator      = (stereorechitColl_.product())->begin();
       SiStripRecHit2DCollection::const_iterator stereorecHitIdIteratorEnd   = (stereorechitColl_.product())->end();
@@ -532,7 +547,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
               stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
 
           SiStripCluster const& stereo_cluster = stereo_iterRecHit_->stripCluster();
-
+            
+          // Obtain the local position in terms of coordinates and store it in the vector
           LocalPoint stereo_lp = stereo_iterRecHit_->localPosition();
           stereo_x.push_back(stereo_lp.x());
           stereo_y.push_back(stereo_lp.y());
@@ -541,6 +557,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
       }
     }
 
+
+    // Different approach to iterating over the rphirechits/monorechits
     if((rphirechitColl_.product())->dataSize() > 0) {
       SiStripRecHit2DCollection::const_iterator rphirecHitIdIterator      = (rphirechitColl_.product())->begin();
       SiStripRecHit2DCollection::const_iterator rphirecHitIdIteratorEnd   = (rphirechitColl_.product())->end();
@@ -608,6 +626,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
 void
 MyTrackingNtuples::beginJob()
 {
+  // Defined a custom check for file pointer to store root ntuple
   if( !fs_ ){
         throw edm::Exception( edm::errors::Configuration,
                 "TFile Service is not registered in cfg file" );

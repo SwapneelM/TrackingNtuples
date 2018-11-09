@@ -24,7 +24,6 @@
 <use name="SimDataFormats/TrackingAnalysis"/>
 <use name="SimTracker/TrackerHitAssociation"/>
 <use name="SimTracker/TrackHistory"/>
-<use name="SimTracker/TrackAssociatorProducers"/>
 
 <use name="TrackingTools/TransientTrackingRecHit"/>
 
