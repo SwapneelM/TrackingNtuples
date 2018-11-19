@@ -201,17 +201,19 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       edm::EDGetTokenT< ClusterTPAssociation > clusterTPMapToken_;
       // TrackClassifier classifier_;
 
-      std::vector<float> stereo_x;
-      std::vector<float> stereo_y;
-      std::vector<float> stereo_z;
+      std::vector<float> stereo_x_;
+      std::vector<float> stereo_y_;
+      std::vector<float> stereo_z_;
 
-      std::vector<float> rphi_x;
-      std::vector<float> rphi_y;
-      std::vector<float> rphi_z;
+      std::vector<float> rphi_x_;
+      std::vector<float> rphi_y_;
+      std::vector<float> rphi_z_;
 
-      std::vector<float> pixel_x;
-      std::vector<float> pixel_y;
-      std::vector<float> pixel_z;
+      /*
+      std::vector<float> pixel_x_;
+      std::vector<float> pixel_y_;
+      std::vector<float> pixel_z_;
+      */
 
       std::vector<float> stereo_r;
       std::vector<float> stereo_phi;
@@ -268,33 +270,33 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("nlumi", &nlumi_, "nlumi/I");
     tree_->Branch("nrun", &nrun_, "nrun/I");
     
-    tree_->Branch("jeteta", &eta_, "jeteta/D");
-    tree_->Branch("jetphi", &phi_, "jetphi/D");
-    tree_->Branch("qoverp", &eta_, "qoverp/D");
+    tree_->Branch("trackEta", &eta_);
+    tree_->Branch("trackPhi", &phi_);
+    tree_->Branch("qoverp", &eta_);
     tree_->Branch("dxy", &dxy_);
     tree_->Branch("dsz", &dsz_);
 
-    tree_->Branch("jetetaError", &eta_Error_, "jeteta/D");
-    tree_->Branch("jetphiError", &phi_Error_, "jetphi/D");
-    tree_->Branch("qoverpError", &eta_Error_, "qoverp/D");
+    tree_->Branch("trackEtaError", &eta_Error_);
+    tree_->Branch("trackPhiError", &phi_Error_);
+    tree_->Branch("qoverpError", &eta_Error_);
     tree_->Branch("dxyError", &dxy_Error_);
     tree_->Branch("dszError", &dsz_Error_);
     
-    tree_->Branch("trackparameters", &track_parameters_);
-    tree_->Branch("covariancearray", &covariance_array_);
+    tree_->Branch("trackParameters", &track_parameters_);
+    tree_->Branch("covarianceArray", &covariance_array_);
 
     //tree_->Branch("NStereoHits",&NStereoHits_,"NStereoHits/I");
-    tree_->Branch("StereoHitX",&stereo_x,"StereoHitX[1000]/F");
-    tree_->Branch("StereoHitY",&stereo_y,"StereoHitY[1000]/F");
-    tree_->Branch("StereoHitZ",&stereo_z,"StereoHitZ[1000]/F");
+    tree_->Branch("StereoHitX",&stereo_x_);
+    tree_->Branch("StereoHitY",&stereo_y_);
+    tree_->Branch("StereoHitZ",&stereo_z_);
 
-    tree_->Branch("MonoHitX",&rphi_x,"MonoHitX[1000]/F");
-    tree_->Branch("MonoHitY",&rphi_y,"MonoHitY[1000]/F");
-    tree_->Branch("MonoHitZ",&rphi_z,"MonoHitZ[1000]/F");
+    tree_->Branch("MonoHitX",&rphi_x_);
+    tree_->Branch("MonoHitY",&rphi_y_);
+    tree_->Branch("MonoHitZ",&rphi_z_);
 
-    tree_->Branch("PixelHitX",&pixel_x,"PixelHitX[1000]/F");
-    tree_->Branch("PixelHitY",&pixel_y,"PixelHitY[1000]/F");
-    tree_->Branch("PixelHitZ",&pixel_z,"PixelHitZ[1000]/F");
+    // tree_->Branch("PixelHitX",&pixel_x_);
+    // tree_->Branch("PixelHitY",&pixel_y_);
+    // tree_->Branch("PixelHitZ",&pixel_z_);
     /* 
     tree_->Branch("StereoHitSigX",&StereoHitSigX_,"StereoHitSigX[1000]/F");
     tree_->Branch("StereoHitSigY",&StereoHitSigY_,"StereoHitSigY[1000]/F");
@@ -369,14 +371,14 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     // Get the information from the pixeltrack branches
     Handle< edm::View<reco::Track> > tracks_;
     iEvent.getByToken(tracksToken_, tracks_);
-
+    
     edm::Handle<reco::RecoToSimCollection> association;
     iEvent.getByToken(association_, association);    
 
     // Retrieving Cluster to Tracking Particle Association
     edm::Handle<ClusterTPAssociation> pCluster2TPListH;
     iEvent.getByToken(clusterTPMapToken_, pCluster2TPListH);
-    const ClusterTPAssociation& clusterToTPMap = *pCluster2TPListH;
+    const ClusterTPAssociation& clusterToTPMap_ = *pCluster2TPListH;
 
     for(size_t track_idx=0; track_idx<tracks_->size(); ++track_idx) {
         
@@ -387,12 +389,24 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
           if(gen_match != association->end()) {
             auto tracking_particle = gen_match->val.front().first;
             std::cout << "TP PDG ID: " << tracking_particle->pdgId() << std::endl;
-            std::cout << "TP Index " << tracking_particle.index() << std::endl;
-            // tracking_particle->trackPSimHit();
+            std::cout << "TP Index: " << tracking_particle.index() << std::endl;
+            std::cout << "TP Number of Hits: " << tracking_particle->numberOfHits() << std::endl;
+            
+            
+            /*
+            // Incorrectly using equal_range - don't need to do this
+            // Instead just pass the clusterref to equal_range and pick the
+            // tracking particle in the first element as the reference for the rechit
+            auto clusterRange_ = clusterToTPMap.equal_range(// add OmniClusterRef here); 
+            for(auto clusterIterator_ = clusterRange_.first; clusterIterator_ != clusterRange_.second;
+                    clusterIterator_++) {
+                customTPMap
+            }
+            */
+
             // Custom methods for Track Association
 
-            /*
-            auto clusterTPmap = clusterToTPMap.map();
+            /*auto clusterTPmap = clusterToTPMap.map();
             std::sort(clusterTPmap.begin(), clusterTPmap.end(), compare);
             auto clusterRange = std::equal_range(clusterTPmap.begin(), clusterTPmap.end(),std::make_pair(OmniClusterRef(), tracking_particle), compare);      
            
@@ -531,88 +545,89 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
     // Different approach to iterating over the stereorechits
     if((stereorechitColl_.product())->dataSize() > 0) {
-      SiStripRecHit2DCollection::const_iterator stereorecHitIdIterator      = (stereorechitColl_.product())->begin();
-      SiStripRecHit2DCollection::const_iterator stereorecHitIdIteratorEnd   = (stereorechitColl_.product())->end();
+        SiStripRecHit2DCollection::const_iterator stereorecHitIdIterator = (stereorechitColl_.product())->begin();
+        SiStripRecHit2DCollection::const_iterator stereorecHitIdIteratorEnd = (stereorechitColl_.product())->end();
       
-      for(SiStripRecHit2DCollection::const_iterator stereo_detunit_iterator_ = stereorecHitIdIterator;
-        stereo_detunit_iterator_ != stereorecHitIdIteratorEnd; stereo_detunit_iterator_++) {
+        for(SiStripRecHit2DCollection::const_iterator stereo_detunit_iterator_ = stereorecHitIdIterator;
+            stereo_detunit_iterator_ != stereorecHitIdIteratorEnd; stereo_detunit_iterator_++) {
         
-        SiStripRecHit2DCollection::DetSet stereo_detset_ = *stereo_detunit_iterator_;
-
-        SiStripRecHit2DCollection::DetSet::const_iterator stereorechitRangeIteratorBegin = stereo_detset_.begin();
-        SiStripRecHit2DCollection::DetSet::const_iterator stereorechitRangeIteratorEnd   = stereo_detset_.end();
-        SiStripRecHit2DCollection::DetSet::const_iterator stereo_iterRecHit_;
-        
-        for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
-              stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
-
-          SiStripCluster const& stereo_cluster = stereo_iterRecHit_->stripCluster();
+            SiStripRecHit2DCollection::DetSet stereo_detset_ = *stereo_detunit_iterator_;
+            SiStripRecHit2DCollection::DetSet::const_iterator stereorechitRangeIteratorBegin = stereo_detset_.begin();
+            SiStripRecHit2DCollection::DetSet::const_iterator stereorechitRangeIteratorEnd = stereo_detset_.end();
+            SiStripRecHit2DCollection::DetSet::const_iterator stereo_iterRecHit_;
             
-          // Obtain the local position in terms of coordinates and store it in the vector
-          LocalPoint stereo_lp = stereo_iterRecHit_->localPosition();
-          stereo_x.push_back(stereo_lp.x());
-          stereo_y.push_back(stereo_lp.y());
-          stereo_z.push_back(stereo_lp.z());        
+            for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
+                  stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
+
+                SiStripCluster const& stereo_cluster_ = stereo_iterRecHit_->stripCluster();
+                // OmniClusterRef::ClusterStripRef stereo_cluster_ = stereo_iterRecHit_->stripCluster();
+                // auto clusterRange_ = clusterToTPMap_.equal_range(stereo_cluster_);
+                auto MappedTrackingParticle_ = clusterToTPMap_.find(stereo_cluster_);
+                // Obtain the local position in terms of coordinates and store it in the vector
+                LocalPoint stereo_lp = stereo_iterRecHit_->localPosition();
+                stereo_x_.push_back(stereo_lp.x());
+                stereo_y_.push_back(stereo_lp.y());
+                stereo_z_.push_back(stereo_lp.z());        
+            }
         }
-      }
     }
 
 
     // Different approach to iterating over the rphirechits/monorechits
     if((rphirechitColl_.product())->dataSize() > 0) {
-      SiStripRecHit2DCollection::const_iterator rphirecHitIdIterator      = (rphirechitColl_.product())->begin();
-      SiStripRecHit2DCollection::const_iterator rphirecHitIdIteratorEnd   = (rphirechitColl_.product())->end();
+        SiStripRecHit2DCollection::const_iterator rphirecHitIdIterator = (rphirechitColl_.product())->begin();
+        SiStripRecHit2DCollection::const_iterator rphirecHitIdIteratorEnd = (rphirechitColl_.product())->end();
 
-      for(SiStripRecHit2DCollection::const_iterator rphi_detunit_iterator_ = rphirecHitIdIterator;
-        rphi_detunit_iterator_ != rphirecHitIdIteratorEnd; rphi_detunit_iterator_++) {
+        for(SiStripRecHit2DCollection::const_iterator rphi_detunit_iterator_ = rphirecHitIdIterator;
+            rphi_detunit_iterator_ != rphirecHitIdIteratorEnd; rphi_detunit_iterator_++) {
         
-        SiStripRecHit2DCollection::DetSet rphi_detset = *rphi_detunit_iterator_;
+            SiStripRecHit2DCollection::DetSet rphi_detset = *rphi_detunit_iterator_;
 
-        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = rphi_detset.begin();
-        SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = rphi_detset.end();
-        SiStripRecHit2DCollection::DetSet::const_iterator rphi_iterRecHit_;
+            SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorBegin = rphi_detset.begin();
+            SiStripRecHit2DCollection::DetSet::const_iterator rechitRangeIteratorEnd   = rphi_detset.end();
+            SiStripRecHit2DCollection::DetSet::const_iterator rphi_iterRecHit_;
         
-        for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
-              rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
+            for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
+                rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
           
-          // Test get rechit cluster
-          // SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
-		      // std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
-		      const SiStripCluster& rphi_cluster = rphi_iterRecHit_->stripCluster();
-          
-	        LocalPoint rphi_lp = rphi_iterRecHit_->localPosition();
-          rphi_x.push_back(rphi_lp.x());
-          rphi_y.push_back(rphi_lp.y());
-          rphi_z.push_back(rphi_lp.z());        
+                // Test get rechit cluster
+                // SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
+		        // std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
+		        const SiStripCluster& rphi_cluster_ = rphi_iterRecHit_->stripCluster();
+                
+	            LocalPoint rphi_lp = rphi_iterRecHit_->localPosition();
+                rphi_x_.push_back(rphi_lp.x());
+                rphi_y_.push_back(rphi_lp.y());
+                rphi_z_.push_back(rphi_lp.z());        
+            }
         }
-      }
     }
       
+    /*
     const SiPixelRecHitCollection *hits = pixelrechitColl_.product();
 
     for(SiPixelRecHitCollection::DataContainer::const_iterator hit = hits->data().begin(),
-      end = hits->data().end(); hit != end; ++hit) {
+        end = hits->data().end(); hit != end; ++hit) {
 
-      /*
       // Is this a different (x, y) location ?
 
-      std::vector< SiPixelCluster::Pixel > pixels(hit->cluster()->pixels());
-      bool pixelOnEdge = false;
-      for(std::vector< SiPixelCluster::Pixel >::const_iterator pixel = pixels.begin();
-          pixel != pixels.end(); ++pixel) {
-        int pixelX = pixel->x;
-        int pixelY = pixel->y;
+      // std::vector< SiPixelCluster::Pixel > pixels(hit->cluster()->pixels());
+      // bool pixelOnEdge = false;
+      // for(std::vector< SiPixelCluster::Pixel >::const_iterator pixel = pixels.begin();
+        // pixel != pixels.end(); ++pixel) {
+        // int pixelX = pixel->x;
+        // int pixelY = pixel->y;
         
         // Here lay code to check if it is an edge pixel
-
-      }*/
+        // }
 	  	SiPixelRecHit::ClusterRef const& clust = hit->cluster();
 
 	    LocalPoint lp = hit->localPosition();
-      pixel_x.push_back(lp.x());
-      pixel_y.push_back(lp.y());
-      pixel_z.push_back(lp.z());
+        pixel_x.push_back(lp.x());
+        pixel_y.push_back(lp.y());
+        pixel_z.push_back(lp.z());
     }
+    */
   // ------------------------------ Fill and Print the Tree -------------------------
 
   tree_->Fill();
