@@ -559,10 +559,14 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
                   stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
 
-                SiStripCluster const& stereo_cluster_ = stereo_iterRecHit_->stripCluster();
+                auto stereo_cluster_ = stereo_iterRecHit_->firstClusterRef();
                 // OmniClusterRef::ClusterStripRef stereo_cluster_ = stereo_iterRecHit_->stripCluster();
                 // auto clusterRange_ = clusterToTPMap_.equal_range(stereo_cluster_);
-                auto MappedTrackingParticle_ = clusterToTPMap_.find(stereo_cluster_);
+                auto clusterTPMapIter_ = clusterToTPMap_.equal_range(stereo_cluster_);
+                for (auto iter__ = clusterTPMapIter_.first; iter__ != clusterTPMapIter_.second;
+                        iter__++){
+                    std::cout << "Iterating through cluster mapping" << std::endl;
+                }
                 // Obtain the local position in terms of coordinates and store it in the vector
                 LocalPoint stereo_lp = stereo_iterRecHit_->localPosition();
                 stereo_x_.push_back(stereo_lp.x());
