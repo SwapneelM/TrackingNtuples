@@ -601,7 +601,9 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 int clusterCount_ = 0;
                 for (auto rphi_map_iter_ = clusterTPMapIter_.first; rphi_map_iter_ != clusterTPMapIter_.second; rphi_map_iter_++){
                     if (clusterCount_ == 0){ 
-                        std::cout << typeid(rphi_map_iter_->second).name() << std::endl;
+                        std::cout << "Typeid of element referenced: " << typeid(rphi_map_iter_->second).name() << std::endl;
+                        std::cout << "Typeid of pointer referenced: " << typeid(*(rphi_map_iter_->second)).name() << std::endl;
+                        // std::cout << "Number of TP Associated with Cluster" << rphi_map_iter_->second << std::endl;
                     }
                    clusterCount_++;
 
