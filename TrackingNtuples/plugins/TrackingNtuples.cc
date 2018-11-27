@@ -126,6 +126,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       ~MyTrackingNtuples();
    
    private:
+	void reset_vectors();
       virtual void beginJob() override;
       virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
       virtual void endJob() override;
@@ -204,20 +205,24 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> stereo_x_;
       std::vector<float> stereo_y_;
       std::vector<float> stereo_z_;
+      std::vector<float> stereo_r_;
+      std::vector<float> stereo_phi_;
+      std::vector<float> stereo_eta_;
+      std::vector<int  > stereo_layer_;
 
       std::vector<float> rphi_x_;
       std::vector<float> rphi_y_;
       std::vector<float> rphi_z_;
+      std::vector<float> rphi_r_;
+      std::vector<float> rphi_phi_;
+      std::vector<float> rphi_eta_;
+      std::vector<int  > rphi_layer_;
 
       /*
       std::vector<float> pixel_x_;
       std::vector<float> pixel_y_;
       std::vector<float> pixel_z_;
       */
-
-      std::vector<float> stereo_r;
-      std::vector<float> stereo_phi;
-      std::vector<float> stereo_eta;
 
       // TODO: Try using a struct to save time and effort
       struct customEventData {  
@@ -272,7 +277,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     
     tree_->Branch("trackEta", &eta_);
     tree_->Branch("trackPhi", &phi_);
-    tree_->Branch("qoverp", &eta_);
+    tree_->Branch("qoverp", &qoverp_);
     tree_->Branch("dxy", &dxy_);
     tree_->Branch("dsz", &dsz_);
 
@@ -289,10 +294,18 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("StereoHitX",&stereo_x_);
     tree_->Branch("StereoHitY",&stereo_y_);
     tree_->Branch("StereoHitZ",&stereo_z_);
+		tree_->Branch("StereoHitR", &stereo_r_);
+		tree_->Branch("StereoHitPhi", &stereo_phi_);
+		tree_->Branch("StereoHitEta", &stereo_eta_);
+		tree_->Branch("StereoHitLayer", &stereo_layer_);
 
     tree_->Branch("MonoHitX",&rphi_x_);
     tree_->Branch("MonoHitY",&rphi_y_);
     tree_->Branch("MonoHitZ",&rphi_z_);
+		tree_->Branch("MonoHitR", &rphi_r_);
+		tree_->Branch("MonoHitPhi", &rphi_phi_);
+		tree_->Branch("MonoHitEta", &rphi_eta_);
+		tree_->Branch("MonoHitLayer", &rphi_layer_);
 
     // tree_->Branch("PixelHitX",&pixel_x_);
     // tree_->Branch("PixelHitY",&pixel_y_);
@@ -334,6 +347,45 @@ static bool MyTrackingNtuples::compare(const std::pair<OmniClusterRef, TrackingP
 }
 */
 
+void MyTrackingNtuples::reset_vectors() {
+    eta_.clear();
+    eta_Error_.clear();
+    phi_.clear();
+    phi_Error_.clear();
+    qoverp_.clear();
+    qoverp_Error_.clear();
+    dxy_.clear();
+    dxy_Error_.clear();
+    dsz_.clear();
+    dsz_Error_.clear();
+    covariance_array_.clear();
+		reshaped_cov_mat_.clear();
+		
+		// Temporary Variables
+		tmpMatrix.clear();
+		tmpVector1.clear();
+		tmpVector2.clear();
+		tmpVector3.clear();
+		tmpVector4.clear();
+		tmpVector5.clear();
+		
+		stereo_x_.clear();
+		stereo_y_.clear();
+		stereo_z_.clear();
+		stereo_r_.clear();
+		stereo_phi_.clear();
+		stereo_eta_.clear();
+		stereo_layer_.clear();
+		
+		rphi_x_.clear();
+		rphi_y_.clear();
+		rphi_z_.clear();
+		rphi_r_.clear();
+		rphi_phi_.clear();
+		rphi_eta_.clear();
+		rphi_layer_.clear();
+}
+
 // ------------ method called for each event  ------------
 
 void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
@@ -352,21 +404,10 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     
     // Set a counter to check the number of hits
     int numtracks_ = 0;
-    
-    eta_.clear();
-    eta_Error_.clear();
-    phi_.clear();
-    phi_Error_.clear();
-    qoverp_.clear();
-    qoverp_Error_.clear();
-    dxy_.clear();
-    dxy_Error_.clear();
-    dsz_.clear();
-    dsz_Error_.clear();
+		reset_vectors();
 
     // TODO: Is this clearing the internal vectors 
     // as well as the container?
-    covariance_array_.clear();
 
     // Get the information from the pixeltrack branches
     Handle< edm::View<reco::Track> > tracks_;
@@ -565,13 +606,17 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(stereo_cluster_);
                 for (auto iter__ = clusterTPMapIter_.first; iter__ != clusterTPMapIter_.second;
                         iter__++){
-                    std::cout << "Iterating through cluster mapping" << std::endl;
+									//std::cout << "Iterating through cluster mapping" << std::endl;
                 }
                 // Obtain the local position in terms of coordinates and store it in the vector
-                LocalPoint stereo_lp = stereo_iterRecHit_->localPosition();
-                stereo_x_.push_back(stereo_lp.x());
-                stereo_y_.push_back(stereo_lp.y());
-                stereo_z_.push_back(stereo_lp.z());        
+                GlobalPoint stereo_gp = stereo_iterRecHit_->globalPosition(); 
+                stereo_x_.push_back(stereo_gp.x());
+                stereo_y_.push_back(stereo_gp.y());
+                stereo_z_.push_back(stereo_gp.z());        
+								stereo_r_.push_back(stereo_gp.perp());
+								stereo_phi_.push_back(stereo_gp.phi());
+								stereo_eta_.push_back(stereo_gp.eta());
+								//stereo_layer_.push_back(); //How to get it?
             }
         }
     }
@@ -594,15 +639,19 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
                 rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
           
-                // Test get rechit cluster
-                // SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
-		        // std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
-		        const SiStripCluster& rphi_cluster_ = rphi_iterRecHit_->stripCluster();
-                
-	            LocalPoint rphi_lp = rphi_iterRecHit_->localPosition();
-                rphi_x_.push_back(rphi_lp.x());
-                rphi_y_.push_back(rphi_lp.y());
-                rphi_z_.push_back(rphi_lp.z());        
+							// Test get rechit cluster
+							// SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
+							// std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
+							const SiStripCluster& rphi_cluster_ = rphi_iterRecHit_->stripCluster();
+							
+							GlobalPoint rphi_gp = rphi_iterRecHit_->globalPosition();
+							rphi_x_.push_back(rphi_gp.x());
+							rphi_y_.push_back(rphi_gp.y());
+							rphi_z_.push_back(rphi_gp.z());        
+							rphi_r_.push_back(  rphi_gp.perp());
+							rphi_phi_.push_back(rphi_gp.phi());
+							rphi_eta_.push_back(rphi_gp.eta());
+							// rphi_layer_.push_back(); //How to get it?
             }
         }
     }
