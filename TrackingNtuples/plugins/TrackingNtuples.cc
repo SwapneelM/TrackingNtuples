@@ -560,11 +560,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                   stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
 
                 auto stereo_cluster_ = stereo_iterRecHit_->firstClusterRef();
-                // OmniClusterRef::ClusterStripRef stereo_cluster_ = stereo_iterRecHit_->stripCluster();
-                // auto clusterRange_ = clusterToTPMap_.equal_range(stereo_cluster_);
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(stereo_cluster_);
-                for (auto iter__ = clusterTPMapIter_.first; iter__ != clusterTPMapIter_.second;
-                        iter__++){
+                for (auto stereo_map_iter_ = clusterTPMapIter_.first; stereo_map_iter_ != clusterTPMapIter_.second; stereo_map_iter_++){
                     std::cout << "Iterating through cluster mapping" << std::endl;
                 }
                 // Obtain the local position in terms of coordinates and store it in the vector
@@ -597,8 +594,20 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 // Test get rechit cluster
                 // SiPixelRecHit::ClusterRef const& clust = iterRecHit_.cluster();
 		        // std::cout << "Rechit Stripcluster: " << recHit.stripCluster() << std::endl;
-		        const SiStripCluster& rphi_cluster_ = rphi_iterRecHit_->stripCluster();
+		        // const SiStripCluster& rphi_cluster_ = rphi_iterRecHit_->stripCluster();
                 
+                auto rphi_cluster_ = rphi_iterRecHit_->firstClusterRef();
+                auto clusterTPMapIter_ = clusterToTPMap_.equal_range(rphi_cluster_);
+                int clusterCount_ = 0;
+                for (auto rphi_map_iter_ = clusterTPMapIter_.first; rphi_map_iter_ != clusterTPMapIter_.second; rphi_map_iter_++){
+                    if (clusterCount_ == 0){ 
+                        std::cout << typeid(rphi_map_iter_->second).name() << std::endl;
+                    }
+                   clusterCount_++;
+
+                }
+                std::cout << "Iterated through cluster mapping " << clusterCount_ << " times." <<  std::endl;
+
 	            LocalPoint rphi_lp = rphi_iterRecHit_->localPosition();
                 rphi_x_.push_back(rphi_lp.x());
                 rphi_y_.push_back(rphi_lp.y());
