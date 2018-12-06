@@ -19,6 +19,7 @@ Description: [one line class summary]
 // system include files
 #include <memory>
 #include <utility>
+#include <cstdint>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -237,7 +238,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("qoverp", &qoverp_);
     tree_->Branch("dxy", &dxy_);
     tree_->Branch("dsz", &dsz_);
-    tree_->Branch("trackTPIdx", &track_tp_idx_);
+    //tree_->Branch("trackTPIdx", &track_tp_idx_);
 
     tree_->Branch("trackEtaError", &eta_Error_);
     tree_->Branch("trackPhiError", &phi_Error_);
@@ -255,7 +256,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("stereoHitPhi", &stereo_phi_);
     tree_->Branch("stereoHitEta", &stereo_eta_);
     tree_->Branch("stereoHitLayer", &stereo_layer_);
-    tree_->Branch("stereoTPIndex", &stereo_tp_idx_);
+    //tree_->Branch("stereoTPIndex", &stereo_tp_idx_);
 
     tree_->Branch("monoHitX",&rphi_x_);
     tree_->Branch("monoHitY",&rphi_y_);
@@ -365,31 +366,26 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         
         //find the tracking particle based on the track
         auto gen_match = association->find(trk_);
-        TrackingParticle default_tp_;
         if(gen_match != association->end()) {
             auto tracking_particle_ = gen_match->val.front().first;
-            if (trackPrintCount_ < 3) {
-                std::cout << "Type of variable in track assoc.: " << typeid(*tracking_particle_).name() << std::endl; 
-                std::cout << "Type of variable in parent assoc.: " << typeid(tracking_particle_).name() << std::endl; 
-                std::cout << "TP Index: " << tracking_particle_.index() << std::endl;
+            if (trackPrintCount_ < 8) {
+                std::cout << "Value at original variable: " << typeid(*tracking_particle_).name() << std::endl; 
+                std::cout << "Address of value type track assoc.: " << typeid(&(*tracking_particle_)).name() << std::endl; 
+                std::cout << "Address of value at trk assoc: " << &(*tracking_particle_) << std::endl;
                 trackPrintCount_++;
             }
+            //uncomment this track_tp_idx_.push_back(&(*tracking_particle_));
 
-            track_tp_idx_.push_back(tracking_particle_.index());
-            track_tp_.push_back(*tracking_particle_);
-
-            // std::cout << "TP PDG ID: " << tracking_particle->pdgId() << std::endl;
-            // std::cout << "TP Index: " << tracking_particle.index() << std::endl;
-            // std::cout << "TP Number of Hits: " << tracking_particle->numberOfTrackerHits() << std::endl;
-            
             // Custom methods for Track Association
 
-		  } else { //no matching
+		  } else {
                 // std::cout << "Match not found" << std::endl;
-                track_tp_idx_.push_back(0);
-                track_tp_.push_back(default_tp_);
-              
-            //TODO
+                /*if (trackPrintCount_ < 10) {
+                    uintptr_t handler = reinterpret_cast<uintptr_t>(default_tp_);
+                    std::cout << "unint_ptr: " << handler << std::endl;
+                    track_tp_idx_.push_back(0);
+                    trackPrintCount_++;
+                }*/
           }
         
         // Add all the Track parameters and corresponding errors to the vectors
@@ -430,8 +426,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     
     // Get the extra information from the pixeltrack branches
     // We haven't really done anything with this though
-    Handle<reco::TrackExtraCollection> trackExtra_;
-    iEvent.getByToken(trackExtraToken_, trackExtra_);
+    // Handle<reco::TrackExtraCollection> trackExtra_;
+    // iEvent.getByToken(trackExtraToken_, trackExtra_);
             
 // ----------------------- Get the RecHits from the Data -------------------
 
@@ -454,7 +450,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     int clusterMatched_ = 0;
     int noMatch_ = 0;
     int printCount_ = 0;
-    TrackingParticle default_tp_;
+    TrackingParticle* default_tp_;
     int vectorPrintCount_ = 0;
     // Approach to iterating over the stereorechits
     if((stereorechitColl_.product())->dataSize() > 0) {
@@ -477,39 +473,33 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 // TrackingParticle default_stereo_tp_;
                 if (clusterTPMapIter_.first != clusterTPMapIter_.second) {
                     clusterFound_++;
-                    auto stereo_tp_id_ = *((clusterTPMapIter_.first)->second);
+                    auto stereo_tp_id_ = ((clusterTPMapIter_.first)->second);
                     
                     if (printCount_ < 3){
-                    std::cout << "Type of variable in stereo tp vector: " << typeid(stereo_tp_id_).name() << std::endl; 
-                    std::cout << "Type of variable in parent vector: " << typeid(&stereo_tp_id_).name() << std::endl; 
+                    std::cout << "Original Stereo tp id: " << typeid(stereo_tp_id_).name() << std::endl; 
+                    std::cout << "Address of value type at stereo tp id: " << typeid(&(*stereo_tp_id_)).name() << std::endl; 
+                    std::cout << "Address of value at stereo tp id: " << &(*stereo_tp_id_) << std::endl; 
                     printCount_++;
                     }
                     
-                    stereo_tp_idx_.push_back(1);
-                    
-                    //stereo_tp_ref_.push_back(*stereo_tp_);
-                    for (auto tpCompareIter_ = track_tp_.begin(); tpCompareIter_ != track_tp_.end(); tpCompareIter_++) {
-                        // std::cout << "Hit matched to Track?" << std::endl;
-                        if(&(*tpCompareIter_) == &stereo_tp_id_){
-                            if ( vectorPrintCount_ <3) {
-                                std::cout << "Type ID Comparison of iterator: " << typeid(*tpCompareIter_).name() << std::endl;
-                                clusterMatched_++;
-                                vectorPrintCount_++; 
+                    /*for (auto tpCompareIter_ = track_tp_idx_.begin(); tpCompareIter_ != track_tp_idx_.end(); tpCompareIter_++) {
+                        if (vectorPrintCount_ < 10) {
+                            if (printCount_ < 7){
+                                std::cout << "Type ID Comparison with: " << typeid(*tpCompareIter_).name() << std::endl;
+                            printCount_++;
                             }
+                            std::cout << "Track TP Memory Addr.: " << (*tpCompareIter_) << " Cluster TP Memory Addr.: " << &(*((clusterTPMapIter_.first)->second)) << "Original: " << (clusterTPMapIter_.first)->second <<  std::endl;
+                            vectorPrintCount_ ++;
                         }
-                    }
+                        //if((*tpCompareIter_) == &(*((clusterTPMapIter_.first)->second))){
+                          //      clusterMatched_++;
+                        //}
+                    }*/
                 
                 } else {
                     noMatch_++;
-                    stereo_tp_idx_.push_back(0);
-                    stereo_tp_.push_back(default_tp_);
+                    //stereo_tp_idx_.push_back(&default_tp_);
                 }
-
-                /* Iterate over clusterTPMap Association to find corresponding Tracking Particle
-                for (auto stereo_map_iter_ = clusterTPMapIter_.first; stereo_map_iter_ != clusterTPMapIter_.second; stereo_map_iter_++){
-				    std::cout << "Iterating through cluster mapping" << std::endl;
-                }
-                */
 
                 // Obtain the local position in terms of coordinates and store it in the vector
                 GlobalPoint stereo_gp = stereo_iterRecHit_->globalPosition(); 
@@ -552,21 +542,6 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                         rphi_phi_.push_back(rphi_gp.phi());
                         rphi_eta_.push_back(rphi_gp.eta());
                         // rphi_layer_.push_back(); //How to get it?
-
-                // auto rphi_cluster_ = rphi_iterRecHit_->firstClusterRef();
-                // auto clusterTPMapIter_ = clusterToTPMap_.equal_range(rphi_cluster_);
-                /*
-                int clusterCount_ = 0;
-                for (auto rphi_map_iter_ = clusterTPMapIter_.first; rphi_map_iter_ != clusterTPMapIter_.second; rphi_map_iter_++){
-                     if (clusterCount_ = 0){ 
-                         std::cout << "Typeid of element referenced: " << typeid(rphi_map_iter_->second).name() << std::endl;
-                          std::cout << "Typeid of pointer referenced: " << typeid(*(rphi_map_iter_->second)).name() << std::endl;
-                     }
-                     clusterCount_++;
-
-                }
-                 std::cout << "Iterated through cluster mapping " << clusterCount_ << " times." <<  std::endl;
-            */
             }
         }
     }
