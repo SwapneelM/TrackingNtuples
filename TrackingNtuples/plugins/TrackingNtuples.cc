@@ -137,9 +137,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> dxy_;
       std::vector<double> dsz_;
       std::vector<double> dz_;
-      std::vector<size_t> track_tp_idx_;
-      //std::vector< edm::Ref<TrackingParticle> > track_tp_ref_;
-      std::vector<TrackingParticle> track_tp_;
+      std::vector<int> track_tp_idx_;
       
       std::vector<double> eta_Error_;
       std::vector<double> phi_Error_;
@@ -187,9 +185,10 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> stereo_phi_;
       std::vector<float> stereo_eta_;
       std::vector< int > stereo_layer_;
-      std::vector< size_t > stereo_tp_idx_;
+      std::vector< int > stereo_tp_idx_;
+      std::vector< int > stereo_hit_match_;
     //  std::vector< edm::Ref<TrackingParticle> > stereo_tp_ref_;
-      std::vector< TrackingParticle > stereo_tp_;
+      //std::vector< TrackingParticle > stereo_tp_;
 
       std::vector<float> rphi_x_;
       std::vector<float> rphi_y_;
@@ -198,7 +197,8 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> rphi_phi_;
       std::vector<float> rphi_eta_;
       std::vector< int > rphi_layer_;
-      std::vector< size_t > rphi_tp_idx_;
+      std::vector< int > rphi_tp_idx_;
+      std::vector< int > rphi_hit_match_;
 };
 
 //
@@ -238,7 +238,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("qoverp", &qoverp_);
     tree_->Branch("dxy", &dxy_);
     tree_->Branch("dsz", &dsz_);
-    //tree_->Branch("trackTPIdx", &track_tp_idx_);
+    tree_->Branch("trackTPIdx", &track_tp_idx_);
 
     tree_->Branch("trackEtaError", &eta_Error_);
     tree_->Branch("trackPhiError", &phi_Error_);
@@ -249,23 +249,25 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("trackParameters", &track_parameters_);
     tree_->Branch("covarianceArray", &covariance_array_);
 
-    tree_->Branch("stereoHitX",&stereo_x_);
-    tree_->Branch("stereoHitY",&stereo_y_);
-    tree_->Branch("stereoHitZ",&stereo_z_);
+    tree_->Branch("stereoHitX", &stereo_x_);
+    tree_->Branch("stereoHitY", &stereo_y_);
+    tree_->Branch("stereoHitZ", &stereo_z_);
     tree_->Branch("stereoHitR", &stereo_r_);
     tree_->Branch("stereoHitPhi", &stereo_phi_);
     tree_->Branch("stereoHitEta", &stereo_eta_);
     tree_->Branch("stereoHitLayer", &stereo_layer_);
-    //tree_->Branch("stereoTPIndex", &stereo_tp_idx_);
+    tree_->Branch("stereoTPIndex", &stereo_tp_idx_);
+    tree_->Branch("stereoHitMatch", &stereo_hit_match_);
 
-    tree_->Branch("monoHitX",&rphi_x_);
-    tree_->Branch("monoHitY",&rphi_y_);
-    tree_->Branch("monoHitZ",&rphi_z_);
+    tree_->Branch("monoHitX", &rphi_x_);
+    tree_->Branch("monoHitY", &rphi_y_);
+    tree_->Branch("monoHitZ", &rphi_z_);
     tree_->Branch("monoHitR", &rphi_r_);
     tree_->Branch("monoHitPhi", &rphi_phi_);
     tree_->Branch("monoHitEta", &rphi_eta_);
     tree_->Branch("monoHitLayer", &rphi_layer_);
     tree_->Branch("monoTPIndex", &rphi_tp_idx_);
+    tree_->Branch("monoHitMatch", &rphi_hit_match_);
 }
 
 
@@ -294,16 +296,8 @@ void MyTrackingNtuples::reset_vectors() {
     covariance_array_.clear();
     reshaped_cov_mat_.clear();
     track_tp_idx_.clear();
-    track_tp_.clear();
-  //  track_tp_ref_.clear();
 		
-    // Temporary Variables
     tmpMatrix.clear();
-    tmpVector1.clear();
-    tmpVector2.clear();
-    tmpVector3.clear();
-    tmpVector4.clear();
-    tmpVector5.clear();
     
     stereo_x_.clear();
     stereo_y_.clear();
@@ -313,8 +307,7 @@ void MyTrackingNtuples::reset_vectors() {
     stereo_eta_.clear();
     stereo_layer_.clear(); 
     stereo_tp_idx_.clear();
-//    stereo_tp_ref_.clear();
-    stereo_tp_.clear();
+    stereo_hit_match_.clear();
     
     rphi_x_.clear();
     rphi_y_.clear();
@@ -324,6 +317,7 @@ void MyTrackingNtuples::reset_vectors() {
     rphi_eta_.clear();
     rphi_layer_.clear();
     rphi_tp_idx_.clear();
+    rphi_hit_match_.clear();
 }
 
 // ------------ method called for each event  ------------
@@ -374,18 +368,11 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 std::cout << "Address of value at trk assoc: " << &(*tracking_particle_) << std::endl;
                 trackPrintCount_++;
             }
-            //uncomment this track_tp_idx_.push_back(&(*tracking_particle_));
 
-            // Custom methods for Track Association
+            track_tp_idx_.push_back(tracking_particle_.index());
 
 		  } else {
-                // std::cout << "Match not found" << std::endl;
-                /*if (trackPrintCount_ < 10) {
-                    uintptr_t handler = reinterpret_cast<uintptr_t>(default_tp_);
-                    std::cout << "unint_ptr: " << handler << std::endl;
-                    track_tp_idx_.push_back(0);
-                    trackPrintCount_++;
-                }*/
+                track_tp_idx_.push_back(-2);
           }
         
         // Add all the Track parameters and corresponding errors to the vectors
@@ -450,8 +437,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     int clusterMatched_ = 0;
     int noMatch_ = 0;
     int printCount_ = 0;
-    TrackingParticle* default_tp_;
-    int vectorPrintCount_ = 0;
+    
     // Approach to iterating over the stereorechits
     if((stereorechitColl_.product())->dataSize() > 0) {
         SiStripRecHit2DCollection::const_iterator stereorecHitIdIterator = (stereorechitColl_.product())->begin();
@@ -475,30 +461,25 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                     clusterFound_++;
                     auto stereo_tp_id_ = ((clusterTPMapIter_.first)->second);
                     
-                    if (printCount_ < 3){
-                    std::cout << "Original Stereo tp id: " << typeid(stereo_tp_id_).name() << std::endl; 
-                    std::cout << "Address of value type at stereo tp id: " << typeid(&(*stereo_tp_id_)).name() << std::endl; 
-                    std::cout << "Address of value at stereo tp id: " << &(*stereo_tp_id_) << std::endl; 
-                    printCount_++;
+                    if (printCount_ < 5){
+                        std::cout << "Original Stereo tp id: " << typeid(stereo_tp_id_).name() << std::endl; 
+                        //std::cout << "Address of value type at stereo tp id: " << typeid(&(*stereo_tp_id_)).name() << std::endl; 
+                        //std::cout << "Address of value at stereo tp id: " << &(*stereo_tp_id_) << std::endl; 
+                        printCount_++;
                     }
                     
-                    /*for (auto tpCompareIter_ = track_tp_idx_.begin(); tpCompareIter_ != track_tp_idx_.end(); tpCompareIter_++) {
-                        if (vectorPrintCount_ < 10) {
-                            if (printCount_ < 7){
-                                std::cout << "Type ID Comparison with: " << typeid(*tpCompareIter_).name() << std::endl;
-                            printCount_++;
-                            }
-                            std::cout << "Track TP Memory Addr.: " << (*tpCompareIter_) << " Cluster TP Memory Addr.: " << &(*((clusterTPMapIter_.first)->second)) << "Original: " << (clusterTPMapIter_.first)->second <<  std::endl;
-                            vectorPrintCount_ ++;
-                        }
-                        //if((*tpCompareIter_) == &(*((clusterTPMapIter_.first)->second))){
-                          //      clusterMatched_++;
-                        //}
-                    }*/
-                
+                    stereo_tp_idx_.push_back(stereo_tp_id_.index());
+                    
+                    if (std::find(track_tp_idx_.begin(), track_tp_idx_.end(), stereo_tp_id_.index()) != track_tp_idx_.end()){
+
+                        stereo_hit_match_.push_back(1);
+                        clusterMatched_++;
+                    }
+
                 } else {
                     noMatch_++;
-                    //stereo_tp_idx_.push_back(&default_tp_);
+                    stereo_hit_match_.push_back(0);
+                    stereo_tp_idx_.push_back(-1);
                 }
 
                 // Obtain the local position in terms of coordinates and store it in the vector
@@ -516,6 +497,10 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     std::cout << clusterFound_ << " Hits matched to Clusters" << std::endl;
     std::cout << clusterMatched_ << " Hits matched to Tracks" << std::endl;
 
+    clusterFound_ = 0;
+    clusterMatched_ = 0;
+    noMatch_ = 0;
+    printCount_ = 0;
 
     // Approach to iterating over the rphirechits/monorechits
     if((rphirechitColl_.product())->dataSize() > 0) {
@@ -534,6 +519,35 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
                 rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
           
+                auto rphi_cluster_ = rphi_iterRecHit_->firstClusterRef();
+                auto clusterTPMapIter_ = clusterToTPMap_.equal_range(rphi_cluster_);
+
+                if (clusterTPMapIter_.first != clusterTPMapIter_.second) {
+                    clusterFound_++;
+                    auto rphi_tp_id_ = ((clusterTPMapIter_.first)->second);
+                    
+                    if (printCount_ < 5){
+                        std::cout << "Original rphi tp id: " << typeid(rphi_tp_id_).name() << std::endl; 
+                        //std::cout << "Address of value type at rphi tp id: " << typeid(&(*rphi_tp_id_)).name() << std::endl; 
+                        //std::cout << "Address of value at rphi tp id: " << &(*rphi_tp_id_) << std::endl; 
+                        printCount_++;
+                    }
+                    
+                    rphi_tp_idx_.push_back(rphi_tp_id_.index());
+
+                    if (std::find(track_tp_idx_.begin(), track_tp_idx_.end(), rphi_tp_id_.index()) != track_tp_idx_.end()){
+                        rphi_hit_match_.push_back(1);
+                        clusterMatched_++;
+                    }
+
+
+                } else {
+                    noMatch_++;
+                    rphi_hit_match_.push_back(0);
+                    rphi_tp_idx_.push_back(-1);
+                }
+
+                // Obtain the local position in terms of coordinates and store it in the vector
                         GlobalPoint rphi_gp = rphi_iterRecHit_->globalPosition();
                         rphi_x_.push_back(rphi_gp.x());
                         rphi_y_.push_back(rphi_gp.y());
@@ -545,6 +559,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             }
         }
     }
+    std::cout << clusterFound_ << " Hits matched to Clusters" << std::endl;
+    std::cout << clusterMatched_ << " Hits matched to Tracks" << std::endl;
       
   // ------------------------------ Fill and Print the Tree -------------------------
 
@@ -570,11 +586,8 @@ MyTrackingNtuples::beginJob()
 void
 MyTrackingNtuples::endJob()
 {
-    // fs_->Write();
-    
     // The Covariance Matrix and Track Parameters are cleared by gROOT->Reset()
     tmpMatrix.swap(covariance_array_);
-
     std::cout << ">> Ending job." << std::endl;
 }
 
