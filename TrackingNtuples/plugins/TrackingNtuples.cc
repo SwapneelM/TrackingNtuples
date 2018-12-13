@@ -137,7 +137,8 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> dxy_;
       std::vector<double> dsz_;
       std::vector<double> dz_;
-      std::vector<int> track_tp_idx_;
+      std::vector<double> pt_;
+      std::vector< std::vector<int> > track_tp_idx_;
       
       std::vector<double> eta_Error_;
       std::vector<double> phi_Error_;
@@ -145,6 +146,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> dxy_Error_;
       std::vector<double> dsz_Error_;
       std::vector<double> dz_Error_;
+      std::vector<double> pt_Error_;
       
       // Store the return values of parameter and 
       // covariance matrix functions
@@ -185,7 +187,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> stereo_phi_;
       std::vector<float> stereo_eta_;
       std::vector< int > stereo_layer_;
-      std::vector< int > stereo_tp_idx_;
+      std::vector< std::vector<int> > stereo_tp_idx_;
       std::vector< int > stereo_hit_match_;
     //  std::vector< edm::Ref<TrackingParticle> > stereo_tp_ref_;
       //std::vector< TrackingParticle > stereo_tp_;
@@ -197,7 +199,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> rphi_phi_;
       std::vector<float> rphi_eta_;
       std::vector< int > rphi_layer_;
-      std::vector< int > rphi_tp_idx_;
+      std::vector< std::vector<int> > rphi_tp_idx_;
       std::vector< int > rphi_hit_match_;
 };
 
@@ -238,6 +240,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("qoverp", &qoverp_);
     tree_->Branch("dxy", &dxy_);
     tree_->Branch("dsz", &dsz_);
+    tree_->Branch("trackPt", &pt_);
     tree_->Branch("trackTPIdx", &track_tp_idx_);
 
     tree_->Branch("trackEtaError", &eta_Error_);
@@ -245,6 +248,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("qoverpError", &eta_Error_);
     tree_->Branch("dxyError", &dxy_Error_);
     tree_->Branch("dszError", &dsz_Error_);
+    tree_->Branch("trackPtError", &pt_Error_);
     
     tree_->Branch("trackParameters", &track_parameters_);
     tree_->Branch("covarianceArray", &covariance_array_);
@@ -293,6 +297,8 @@ void MyTrackingNtuples::reset_vectors() {
     dxy_Error_.clear();
     dsz_.clear();
     dsz_Error_.clear();
+    pt_.clear();
+    pt_Error_.clear();
     covariance_array_.clear();
     reshaped_cov_mat_.clear();
     track_tp_idx_.clear();
@@ -351,29 +357,32 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     edm::Handle<ClusterTPAssociation> pCluster2TPListH;
     iEvent.getByToken(clusterTPMapToken_, pCluster2TPListH);
     const ClusterTPAssociation& clusterToTPMap_ = *pCluster2TPListH;
-    
+    // Define a vector to store the tp index collection for each track
+    std::vector<int> track_tp_vector_;
     int trackPrintCount_ = 0;
 
     for(size_t track_idx=0; track_idx<tracks_->size(); ++track_idx) {
-        
+        track_tp_vector_.clear(); 
         edm::RefToBase<reco::Track> trk_(tracks_, track_idx);
         
+        int trackTPmatches_ = 0;
         //find the tracking particle based on the track
         auto gen_match = association->find(trk_);
-        if(gen_match != association->end()) {
-            auto tracking_particle_ = gen_match->val.front().first;
-            if (trackPrintCount_ < 8) {
-                std::cout << "Value at original variable: " << typeid(*tracking_particle_).name() << std::endl; 
-                std::cout << "Address of value type track assoc.: " << typeid(&(*tracking_particle_)).name() << std::endl; 
-                std::cout << "Address of value at trk assoc: " << &(*tracking_particle_) << std::endl;
-                trackPrintCount_++;
-            }
-
-            track_tp_idx_.push_back(tracking_particle_.index());
-
-		  } else {
-                track_tp_idx_.push_back(-2);
-          }
+        if (gen_match != association->end()) {
+                auto tracking_particle_ = gen_match->val.front().first;
+                trackTPmatches_ = gen_match->val.size();
+                track_tp_vector_.push_back(tracking_particle_.index());
+		} else {
+            track_tp_vector_.push_back(-2);
+        }
+        // Print the number of TP Matches found for the track
+        if (trackPrintCount_ <= 8) {
+            //std::cout << typeid(gen_match).name() << std::endl;
+            trackPrintCount_++;
+            std::cout << "Track Matched to " << trackTPmatches_ << " TPs" <<  std::endl;
+        }
+            
+        track_tp_idx_.push_back(track_tp_vector_);
         
         // Add all the Track parameters and corresponding errors to the vectors
         // to be put into the TTree
@@ -388,6 +397,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         dxy_Error_.push_back(trk_->dxyError());
         dz_.push_back(trk_->dz());
         dz_Error_.push_back(trk_->dzError());
+        pt_.push_back(trk_->pt());
+        pt_Error_.push_back(trk_->ptError());
         
         covariance_mat_ = trk_->covariance();
         track_parameters_ = trk_->parameters();
@@ -437,6 +448,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     int clusterMatched_ = 0;
     int noMatch_ = 0;
     int printCount_ = 0;
+    int num_clusters_ = 0;
+    std::vector<int> stereo_tp_vector_;
     
     // Approach to iterating over the stereorechits
     if((stereorechitColl_.product())->dataSize() > 0) {
@@ -452,36 +465,45 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             
             for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
                   stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
-
+                num_clusters_ = 0;
+                stereo_tp_vector_.clear();
                 auto stereo_cluster_ = stereo_iterRecHit_->firstClusterRef();
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(stereo_cluster_);
 
                 // TrackingParticle default_stereo_tp_;
                 if (clusterTPMapIter_.first != clusterTPMapIter_.second) {
                     clusterFound_++;
-                    auto stereo_tp_id_ = ((clusterTPMapIter_.first)->second);
-                    
-                    if (printCount_ < 5){
-                        std::cout << "Original Stereo tp id: " << typeid(stereo_tp_id_).name() << std::endl; 
-                        //std::cout << "Address of value type at stereo tp id: " << typeid(&(*stereo_tp_id_)).name() << std::endl; 
-                        //std::cout << "Address of value at stereo tp id: " << &(*stereo_tp_id_) << std::endl; 
-                        printCount_++;
-                    }
-                    
-                    stereo_tp_idx_.push_back(stereo_tp_id_.index());
-                    
-                    if (std::find(track_tp_idx_.begin(), track_tp_idx_.end(), stereo_tp_id_.index()) != track_tp_idx_.end()){
-
-                        stereo_hit_match_.push_back(1);
-                        clusterMatched_++;
-                    }
-
+                     for (auto clusterIter_ = clusterTPMapIter_.first; clusterIter_ != clusterTPMapIter_.second; clusterIter_++) {
+                        auto stereo_tp_id_ = ((*clusterIter_).second);
+                        stereo_tp_vector_.push_back(stereo_tp_id_.index());
+                        
+                        for (auto track_tp_iterator_ = track_tp_idx_.begin();
+                                track_tp_iterator_ != track_tp_idx_.end();
+                                track_tp_iterator_++){   
+                            if (std::find((*track_tp_iterator_).begin(), (*track_tp_iterator_).end(), stereo_tp_id_.index()) != (*track_tp_iterator_).end()) {
+                                num_clusters_++;
+                            } 
+                        }
+                     }
+                     // Check if clusters were matched
+                     if (num_clusters_ > 0) {
+                        if (printCount_ < 8) {
+                            std::cout << num_clusters_ << " clusters found for rechit" << std::endl;
+                            printCount_++;
+                        }
+                         clusterMatched_++;
+                         stereo_hit_match_.push_back(num_clusters_);
+                     } else {
+                         noMatch_++;
+                         stereo_hit_match_.push_back(0);
+                     }
                 } else {
                     noMatch_++;
                     stereo_hit_match_.push_back(0);
-                    stereo_tp_idx_.push_back(-1);
                 }
 
+                stereo_tp_idx_.push_back(stereo_tp_vector_);
+                
                 // Obtain the local position in terms of coordinates and store it in the vector
                 GlobalPoint stereo_gp = stereo_iterRecHit_->globalPosition(); 
                 stereo_x_.push_back(stereo_gp.x());
@@ -501,6 +523,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     clusterMatched_ = 0;
     noMatch_ = 0;
     printCount_ = 0;
+    num_clusters_ = 0;
+    std::vector<int> rphi_tp_vector_;
 
     // Approach to iterating over the rphirechits/monorechits
     if((rphirechitColl_.product())->dataSize() > 0) {
@@ -519,33 +543,44 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
                 rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
           
+                num_clusters_ = 0;
+                rphi_tp_vector_.clear();
                 auto rphi_cluster_ = rphi_iterRecHit_->firstClusterRef();
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(rphi_cluster_);
 
+                // TrackingParticle default_rphi_tp_;
                 if (clusterTPMapIter_.first != clusterTPMapIter_.second) {
                     clusterFound_++;
-                    auto rphi_tp_id_ = ((clusterTPMapIter_.first)->second);
-                    
-                    if (printCount_ < 5){
-                        std::cout << "Original rphi tp id: " << typeid(rphi_tp_id_).name() << std::endl; 
-                        //std::cout << "Address of value type at rphi tp id: " << typeid(&(*rphi_tp_id_)).name() << std::endl; 
-                        //std::cout << "Address of value at rphi tp id: " << &(*rphi_tp_id_) << std::endl; 
-                        printCount_++;
-                    }
-                    
-                    rphi_tp_idx_.push_back(rphi_tp_id_.index());
-
-                    if (std::find(track_tp_idx_.begin(), track_tp_idx_.end(), rphi_tp_id_.index()) != track_tp_idx_.end()){
-                        rphi_hit_match_.push_back(1);
-                        clusterMatched_++;
-                    }
-
-
+                     for (auto clusterIter_ = clusterTPMapIter_.first; clusterIter_ != clusterTPMapIter_.second; clusterIter_++) {
+                        auto rphi_tp_id_ = ((*clusterIter_).second);
+                        rphi_tp_vector_.push_back(rphi_tp_id_.index());
+                        
+                        for (auto track_tp_iterator_ = track_tp_idx_.begin();
+                                track_tp_iterator_ != track_tp_idx_.end();
+                                track_tp_iterator_++){   
+                            if (std::find((*track_tp_iterator_).begin(), (*track_tp_iterator_).end(), rphi_tp_id_.index()) != (*track_tp_iterator_).end()) {
+                                num_clusters_++;
+                            } 
+                        }
+                     }
+                     // Check if clusters were matched
+                     if (num_clusters_ > 0) {
+                        if (printCount_ < 8) {
+                            std::cout << num_clusters_ << " clusters found for rechit" << std::endl;
+                            printCount_++;
+                        }
+                         clusterMatched_++;
+                         rphi_hit_match_.push_back(num_clusters_);
+                     } else {
+                         noMatch_++;
+                         rphi_hit_match_.push_back(0);
+                     }
                 } else {
                     noMatch_++;
                     rphi_hit_match_.push_back(0);
-                    rphi_tp_idx_.push_back(-1);
                 }
+                
+                rphi_tp_idx_.push_back(rphi_tp_vector_);
 
                 // Obtain the local position in terms of coordinates and store it in the vector
                         GlobalPoint rphi_gp = rphi_iterRecHit_->globalPosition();
