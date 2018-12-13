@@ -377,7 +377,9 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         }
         // Print the number of TP Matches found for the track
         if (trackPrintCount_ <= 8) {
-            //std::cout << typeid(gen_match).name() << std::endl;
+            std::cout << typeid(gen_match).name() << std::endl;
+            std::cout << typeid(gen_match->val).name() << std::endl;
+            std::cout << typeid(gen_match->val.front()).name() << std::endl;
             trackPrintCount_++;
             std::cout << "Track Matched to " << trackTPmatches_ << " TPs" <<  std::endl;
         }
@@ -448,7 +450,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     int clusterMatched_ = 0;
     int noMatch_ = 0;
     int printCount_ = 0;
-    int num_clusters_ = 0;
+    int num_tps_ = 0;
     std::vector<int> stereo_tp_vector_;
     
     // Approach to iterating over the stereorechits
@@ -465,7 +467,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             
             for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
                   stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
-                num_clusters_ = 0;
+                num_tps_ = 0;
                 stereo_tp_vector_.clear();
                 auto stereo_cluster_ = stereo_iterRecHit_->firstClusterRef();
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(stereo_cluster_);
@@ -480,19 +482,21 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                         for (auto track_tp_iterator_ = track_tp_idx_.begin();
                                 track_tp_iterator_ != track_tp_idx_.end();
                                 track_tp_iterator_++){   
-                            if (std::find((*track_tp_iterator_).begin(), (*track_tp_iterator_).end(), stereo_tp_id_.index()) != (*track_tp_iterator_).end()) {
-                                num_clusters_++;
+                            auto search_result_ = std::find((*track_tp_iterator_).begin(), (*track_tp_iterator_).end(), stereo_tp_id_.index());
+                            if (search_result_ != (*track_tp_iterator_).end()) {
+                                std::cout << "Match found for stereo idx " << stereo_tp_id_.index() << " in track " << std::distance(track_tp_idx_.begin(), track_tp_iterator_) << std::endl;
+                                num_tps_++;
                             } 
                         }
                      }
-                     // Check if clusters were matched
-                     if (num_clusters_ > 0) {
+                     // Check how many clusters were matched to TPs
+                     if (num_tps_ > 0) {
                         if (printCount_ < 8) {
-                            std::cout << num_clusters_ << " clusters found for rechit" << std::endl;
+                            std::cout << num_tps_ << " TPs found for rechit" << std::endl;
                             printCount_++;
                         }
                          clusterMatched_++;
-                         stereo_hit_match_.push_back(num_clusters_);
+                         stereo_hit_match_.push_back(num_tps_);
                      } else {
                          noMatch_++;
                          stereo_hit_match_.push_back(0);
@@ -523,7 +527,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     clusterMatched_ = 0;
     noMatch_ = 0;
     printCount_ = 0;
-    num_clusters_ = 0;
+    num_tps_ = 0;
     std::vector<int> rphi_tp_vector_;
 
     // Approach to iterating over the rphirechits/monorechits
@@ -543,7 +547,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
                 rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
           
-                num_clusters_ = 0;
+                num_tps_ = 0;
                 rphi_tp_vector_.clear();
                 auto rphi_cluster_ = rphi_iterRecHit_->firstClusterRef();
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(rphi_cluster_);
@@ -559,18 +563,18 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                                 track_tp_iterator_ != track_tp_idx_.end();
                                 track_tp_iterator_++){   
                             if (std::find((*track_tp_iterator_).begin(), (*track_tp_iterator_).end(), rphi_tp_id_.index()) != (*track_tp_iterator_).end()) {
-                                num_clusters_++;
+                                num_tps_++;
                             } 
                         }
                      }
                      // Check if clusters were matched
-                     if (num_clusters_ > 0) {
+                     if (num_tps_ > 0) {
                         if (printCount_ < 8) {
-                            std::cout << num_clusters_ << " clusters found for rechit" << std::endl;
+                            std::cout << num_tps_ << " TPs found for rechit" << std::endl;
                             printCount_++;
                         }
                          clusterMatched_++;
-                         rphi_hit_match_.push_back(num_clusters_);
+                         rphi_hit_match_.push_back(num_tps_);
                      } else {
                          noMatch_++;
                          rphi_hit_match_.push_back(0);
