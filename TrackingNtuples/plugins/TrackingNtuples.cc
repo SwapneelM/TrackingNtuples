@@ -82,6 +82,8 @@ Description: [one line class summary]
 // Include data format for simhits
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
+#include "SimGeneral/TrackingAnalysis/interface/SimHitTPAssociationProducer.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/SiPixelDigi/interface/PixelDigi.h"
@@ -175,6 +177,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       edm::EDGetTokenT< SiStripRecHit2DCollection > stereoRecHitToken_;
       edm::EDGetTokenT< SiPixelRecHitCollection > siPixelRecHitsToken_;
 
+      edm::EDGetTokenT<SimHitTPAssociationProducer::SimHitTPAssociationList> simHitTPMapToken_;
       edm::EDGetTokenT< reco::RecoToSimCollection > association_;
 
       // Tracking Particle Association
@@ -201,6 +204,14 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector< int > rphi_layer_;
       std::vector< std::vector<int> > rphi_tp_idx_;
       std::vector< int > rphi_hit_match_;
+
+
+      std::vector<float> simhit_x_;
+      std::vector<float> simhit_y_;
+      std::vector<float> simhit_z_;
+      std::vector< int > simhit_tp_idx_; 
+      std::vector< int > simhit_match_;
+
 };
 
 //
@@ -219,10 +230,9 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
  :
   tracksToken_(consumes< edm::View<reco::Track> >(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
-  matchedRecHitToken_(consumes<SiStripMatchedRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("matchedRecHits"))),
   rphiRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),   
   stereoRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
-  siPixelRecHitsToken_(consumes<SiPixelRecHitCollection>(iConfig.getParameter<edm::InputTag>("siPixelRecHits"))),
+   simHitTPMapToken_(consumes<SimHitTPAssociationProducer::SimHitTPAssociationList>(iConfig.getParameter<edm::InputTag>("simHitTPMap"))),
   association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("associator"))),
   clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
 {
@@ -241,7 +251,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("dxy", &dxy_);
     tree_->Branch("dsz", &dsz_);
     tree_->Branch("trackPt", &pt_);
-    tree_->Branch("trackTPIdx", &track_tp_idx_);
+    tree_->Branch("trackTPIndex", &track_tp_idx_);
 
     tree_->Branch("trackEtaError", &eta_Error_);
     tree_->Branch("trackPhiError", &phi_Error_);
@@ -272,6 +282,12 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("monoHitLayer", &rphi_layer_);
     tree_->Branch("monoTPIndex", &rphi_tp_idx_);
     tree_->Branch("monoHitMatch", &rphi_hit_match_);
+
+    tree_->Branch("simHitX", &simhit_x_);
+    tree_->Branch("simHitY", &simhit_y_);
+    tree_->Branch("simHitZ", &simhit_z_);
+    tree_->Branch("simhitTPIndex", &simhit_tp_idx_);
+    tree_->Branch("simHitMatch", &simhit_match_);
 }
 
 
@@ -324,6 +340,12 @@ void MyTrackingNtuples::reset_vectors() {
     rphi_layer_.clear();
     rphi_tp_idx_.clear();
     rphi_hit_match_.clear();
+
+    simhit_x_.clear();
+    simhit_y_.clear();
+    simhit_z_.clear();
+    simhit_tp_idx_.clear();
+    simhit_match_.clear();
 }
 
 // ------------ method called for each event  ------------
@@ -353,10 +375,19 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     edm::Handle<reco::RecoToSimCollection> association;
     iEvent.getByToken(association_, association);    
 
-    // Retrieving Cluster to Tracking Particle Association
+    // Retrieve Cluster to Tracking Particle Association
     edm::Handle<ClusterTPAssociation> pCluster2TPListH;
     iEvent.getByToken(clusterTPMapToken_, pCluster2TPListH);
     const ClusterTPAssociation& clusterToTPMap_ = *pCluster2TPListH;
+
+    // Retrieve Simhit to Tracking Particle Association
+    edm::Handle<SimHitTPAssociationProducer::SimHitTPAssociationList> simHitsTPAssoc;
+    iEvent.getByToken(simHitTPMapToken_, simHitsTPAssoc);
+
+    edm::ESHandle<TrackerGeometry> geometryHandle;
+    iSetup.get<TrackerDigiGeometryRecord>().get(geometryHandle);
+    const TrackerGeometry &tracker = *geometryHandle;
+
     // Define a vector to store the tp index collection for each track
     std::vector<int> track_tp_vector_;
     int trackPrintCount_ = 0;
@@ -369,19 +400,25 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         //find the tracking particle based on the track
         auto gen_match = association->find(trk_);
         if (gen_match != association->end()) {
-                auto tracking_particle_ = gen_match->val.front().first;
+                const edm::Ref<std::vector<TrackingParticle> > tracking_particle_ = gen_match->val.front().first;
+                // std::cout << "Track TP Matched: " << typeid(tracking_particle_).name();
                 trackTPmatches_ = gen_match->val.size();
-                track_tp_vector_.push_back(tracking_particle_.index());
+                //track_tp_vector_.push_back(tracking_particle_.index());
+                for (auto TrackTPIter_ = gen_match->val.begin();
+                        TrackTPIter_ != gen_match->val.end(); TrackTPIter_++) {
+                    track_tp_vector_.push_back(TrackTPIter_->first.index());
+                }
 		} else {
             track_tp_vector_.push_back(-2);
         }
         // Print the number of TP Matches found for the track
-        if (trackPrintCount_ <= 8) {
-            std::cout << typeid(gen_match).name() << std::endl;
-            std::cout << typeid(gen_match->val).name() << std::endl;
-            std::cout << typeid(gen_match->val.front()).name() << std::endl;
-            trackPrintCount_++;
-            std::cout << "Track Matched to " << trackTPmatches_ << " TPs" <<  std::endl;
+        if (trackPrintCount_ <= 45) {
+            // Test if this code works by removing the push_back_ of track tp index from above
+            // and modifying the > 1 to > 0 so addition of the index only happens through this code
+            if (trackTPmatches_ > 1){
+                trackPrintCount_++;
+                std::cout << "Track Matched to " << trackTPmatches_ << " TPs" <<  std::endl;
+            }
         }
             
         track_tp_idx_.push_back(track_tp_vector_);
@@ -428,17 +465,61 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     // We haven't really done anything with this though
     // Handle<reco::TrackExtraCollection> trackExtra_;
     // iEvent.getByToken(trackExtraToken_, trackExtra_);
+
+
+// ----------------------- Extract and Match the Simhits to Tracks ------------------    
+
+    //int simhit_found_ = 0;
+    for (const auto& assoc: *simHitsTPAssoc){
+        const auto& simhit = *(assoc.second);
+        const edm::Ref<std::vector<TrackingParticle> > simhit_tp_ = assoc.first;
+        
+        simhit_tp_idx_.push_back(simhit_tp_.index()); 
+        
+        //simhit_found_ = 1;
+        
+        auto detId = DetId(simhit.detUnitId());
+        if(detId.det() != DetId::Tracker) continue;
+
+        auto det = tracker.idToDetUnit(detId);
+        const auto pos = det->surface().toGlobal(simhit.localPosition());
+        simhit_x_.push_back(pos.x());
+        simhit_y_.push_back(pos.y());
+        simhit_z_.push_back(pos.z());
+
+        for (auto track_tp_iterator_ = track_tp_idx_.begin();
+                track_tp_iterator_ != track_tp_idx_.end();
+                track_tp_iterator_++){   
+            auto search_result_ = std::find((*track_tp_iterator_).begin(), (*track_tp_iterator_).end(), simhit_tp_.index());
+            if (search_result_ != (*track_tp_iterator_).end()) {
+                //std::cout << "Match found for stereo idx " << stereo_tp_id_.index() << " in track " << std::distance(track_tp_idx_.begin(), track_tp_iterator_) << std::endl;
+                simhit_match_.push_back(std::distance(track_tp_idx_.begin(), track_tp_iterator_));
+            } 
+            else {
+                simhit_match_.push_back(0);
+            }
+        }
+        
+        /*
+         * if (simhit_found_ == 1) {
+            std::cout<< "detId: " << typeid(detId).name() << std::endl;
+            std::cout<< "det: " << typeid(det).name() << std::endl;
+            std::cout<< "pos: " << typeid(pos).name() << std::endl;
+            std::cout<< "assoc: " << typeid(assoc).name() << std::endl;
+            std::cout<< "simhit: " << typeid(simhit).name() << std::endl;
+        }*/
+        
+
+    }
             
-// ----------------------- Get the RecHits from the Data -------------------
+// ----------------------- Extract and Match the RecHits to Tracks ------------------
 
     // Find the collections of rechits and pixelhits
     edm::Handle<SiStripRecHit2DCollection> rphirechitColl_;
     edm::Handle<SiStripRecHit2DCollection> stereorechitColl_;
-    edm::Handle<SiStripMatchedRecHit2DCollection> matchedrechitColl_;
 
     iEvent.getByToken(rphiRecHitToken_, rphirechitColl_);
     iEvent.getByToken(stereoRecHitToken_, stereorechitColl_);
-    iEvent.getByToken(matchedRecHitToken_, matchedrechitColl_);
     
     // TODO: Write a function that initializes the value of all of the variables 
     // initNtuple();
@@ -476,7 +557,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 if (clusterTPMapIter_.first != clusterTPMapIter_.second) {
                     clusterFound_++;
                      for (auto clusterIter_ = clusterTPMapIter_.first; clusterIter_ != clusterTPMapIter_.second; clusterIter_++) {
-                        auto stereo_tp_id_ = ((*clusterIter_).second);
+                        const edm::Ref<std::vector<TrackingParticle> > stereo_tp_id_ = ((*clusterIter_).second);
                         stereo_tp_vector_.push_back(stereo_tp_id_.index());
                         
                         for (auto track_tp_iterator_ = track_tp_idx_.begin();
@@ -484,7 +565,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                                 track_tp_iterator_++){   
                             auto search_result_ = std::find((*track_tp_iterator_).begin(), (*track_tp_iterator_).end(), stereo_tp_id_.index());
                             if (search_result_ != (*track_tp_iterator_).end()) {
-                                std::cout << "Match found for stereo idx " << stereo_tp_id_.index() << " in track " << std::distance(track_tp_idx_.begin(), track_tp_iterator_) << std::endl;
+                                //std::cout << "Match found for stereo idx " << stereo_tp_id_.index() << " in track " << std::distance(track_tp_idx_.begin(), track_tp_iterator_) << std::endl;
                                 num_tps_++;
                             } 
                         }
@@ -492,7 +573,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                      // Check how many clusters were matched to TPs
                      if (num_tps_ > 0) {
                         if (printCount_ < 8) {
-                            std::cout << num_tps_ << " TPs found for rechit" << std::endl;
+                            // std::cout << num_tps_ << " TPs found for rechit" << std::endl;
                             printCount_++;
                         }
                          clusterMatched_++;
@@ -570,7 +651,7 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                      // Check if clusters were matched
                      if (num_tps_ > 0) {
                         if (printCount_ < 8) {
-                            std::cout << num_tps_ << " TPs found for rechit" << std::endl;
+                            // std::cout << num_tps_ << " TPs found for rechit" << std::endl;
                             printCount_++;
                         }
                          clusterMatched_++;
@@ -600,6 +681,10 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     }
     std::cout << clusterFound_ << " Hits matched to Clusters" << std::endl;
     std::cout << clusterMatched_ << " Hits matched to Tracks" << std::endl;
+
+
+
+
       
   // ------------------------------ Fill and Print the Tree -------------------------
 

@@ -3,7 +3,7 @@ import FWCore.ParameterSet.Config as cms
 
 # This is needed to find the "quickTrackAssociatorByHits"
 from SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi import *
-
+from SimGeneral.TrackingAnalysis.simHitTPAssociation_cfi import *
 from SimTracker.TrackAssociation.trackingParticleRecoTrackAsssociation_cfi import *
 
 def customize(process, outfile='outfile.root'):
@@ -22,6 +22,7 @@ def customize(process, outfile='outfile.root'):
         stereoRecHits = cms.InputTag("siStripMatchedRecHits","stereoRecHit"),
         siPixelRecHits = cms.InputTag("siPixelRecHits"),
         # associator = cms.InputTag("trackingParticleRecoTrackAsssociation")
+        simHitTPMap = cms.InputTag("simHitTPAssocProducer"),
         associator = cms.InputTag("swapneelAssociator"),
         clusterTPMap = cms.InputTag("tpClusterProducer")
     )
@@ -29,24 +30,10 @@ def customize(process, outfile='outfile.root'):
                                     label_tr = cms.InputTag("pixelTracks")
                                 )
 
-    '''
-    process.options = cms.untracked.PSet(
-        SkipEvent = cms.untracked.vstring('ProductNotFound')
-    )
-    '''
     process.reconstruction_pixelTrackingOnly *= process.reconstruction
+    process.reconstruction_pixelTrackingOnly *= process.simHitTPAssocProducer
     process.reconstruction_pixelTrackingOnly *= process.tpClusterProducer
     process.reconstruction_pixelTrackingOnly *= process.quickTrackAssociatorByHits
     process.reconstruction_pixelTrackingOnly *= process.swapneelAssociator
     process.reconstruction_pixelTrackingOnly *= process.ntuples
-
-    # Overriding the variables in track association
-    # This was obtained from the 'process.load' above
-    '''
-    process.trackreconstruction = process.trackingParticleRecoTrackAsssociation.clone(
-                associator = 'QuickTrackAssociatorByHits'
-                )
-
-     process.reconstruction_pixelTrackingOnly *= process.trackreconstruction
-    '''
 
