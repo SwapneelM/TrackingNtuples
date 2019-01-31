@@ -1,5 +1,9 @@
 venv
 mlenv
+data/
+gated-graph-neural-network-samples/
+*.msgpack
+*.csv
 *.bak
 *.nvimlog
 *.md
