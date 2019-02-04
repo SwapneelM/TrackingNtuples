@@ -1,4 +1,6 @@
 venv
+tryenv
+venv3
 mlenv
 data/
 gated-graph-neural-network-samples/
