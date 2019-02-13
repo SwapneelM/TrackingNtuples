@@ -1,8 +1,11 @@
 # Create and activate a virtual environment using miniconda
+# If you have not already done so, create a 'workspace' at resources.web.cern.ch and increase its capacity to at least 20-50 GB
 # cd <afs work directory: you need some disk space for this!>
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
 
+# Source Bashrc for changes to take effect and for the 'conda' command
+source ~/.bashrc
 conda create -n trackingenv python=2.7
 conda activate trackingenv
 
