@@ -24,10 +24,16 @@ pip install -r requirements.txt
 # Run a Jupyter Notebook on LXPlus
 # Any 5-digit port ID should work (for some reason 4-digit doesn't work)
 # Obviously the upper limit is port ID 65535
-jupyter notebook --ip=127.0.0.1 --no-browser --port 64002
+# You may have to set a default password for jupyter using the commend 'jupyter notebook password'
+# This will be the password you need to log into the jupyter notebook via a remote browser
+jupyter notebook --ip=127.0.0.1 --no-browser --port=64002
 
-# Now from your local machine run the following command to tunnel the remote port 64002
-# onto your local machine's port 10000 and then access it on your web browser at '127.0.0.1:10000'
+# Now from your local machine run the following command
 # ssh -nNT -L 127.0.0.1:10000:127.0.0.1:64002 [cern-username]@lxplus[number].cern.ch
+# This tunnels the port 64002 on remote host lxplus to your machine's port 10000
+# Then you can access access it on your web browser at '127.0.0.1:10000'
+# Note that we can ideally replace '127.0.0.1' with 'localhost' if your `etc/hosts` file contains a line:
+# 127.0.0.1               localhost localhost. 
+# But in general, if you are not root you might not be able to modify these settings so stick with '127.0.0.1'
 
 
