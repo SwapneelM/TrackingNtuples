@@ -27,7 +27,7 @@ pip install -r requirements.txt
 jupyter notebook --ip=127.0.0.1 --no-browser --port 64002
 
 # Now from your local machine run the following command to tunnel the remote port 64002
-# onto your local machine's port 10000 and then access it on your web browser at 'localhost:10000'
-# ssh -nNT -L localhost:10000:127.0.0.1:64002 [cern-username]@lxplus[number].cern.ch
+# onto your local machine's port 10000 and then access it on your web browser at '127.0.0.1:10000'
+# ssh -nNT -L 127.0.0.1:10000:127.0.0.1:64002 [cern-username]@lxplus[number].cern.ch
 
 
