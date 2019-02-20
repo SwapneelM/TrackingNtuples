@@ -2,11 +2,11 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="04bce884-2ad5-4dcf-8d2f-89a2d963858c" name="CMG GPU" url="http://localhost">
-        <fileTransfer explicitFtps="false" host="cmg-gpu1080.cern.ch" port="22" rootFolder="/data/ml/smehta" accessType="SFTP">
+        <fileTransfer explicitFtps="false" host="cmg-gpu1080.cern.ch" port="21" rootFolder="/data/ml/smehta">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" />
           </advancedOptions>
-          <option name="port" value="22" />
+          <option name="port" value="21" />
         </fileTransfer>
       </webServer>
     </option>

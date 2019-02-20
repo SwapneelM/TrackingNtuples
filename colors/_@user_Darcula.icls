@@ -1,0 +1,42 @@
+<scheme name="_@user_Darcula" version="142" parent_scheme="Darcula">
+  <option name="FONT_SCALE" value="1.0" />
+  <metaInfo>
+    <property name="created">2019-02-20T11:19:34</property>
+    <property name="ide">Python</property>
+    <property name="ideVersion">2018.2.4.0.0</property>
+    <property name="modified">2019-02-20T11:41:00</property>
+    <property name="originalScheme">Darcula</property>
+  </metaInfo>
+  <option name="LINE_SPACING" value="1.0" />
+  <font>
+    <option name="EDITOR_FONT_NAME" value="SourceCodePro+Powerline+Awesome Regular" />
+    <option name="EDITOR_FONT_SIZE" value="15" />
+  </font>
+  <font>
+    <option name="EDITOR_FONT_NAME" value="Anonymous Pro for Powerline" />
+    <option name="EDITOR_FONT_SIZE" value="15" />
+  </font>
+  <attributes>
+    <option name="CONSOLE_BLACK_OUTPUT">
+      <value>
+        <option name="FOREGROUND" value="bbbbbb" />
+      </value>
+    </option>
+    <option name="LOG_EXPIRED_ENTRY">
+      <value>
+        <option name="FOREGROUND" value="6d6d6d" />
+      </value>
+    </option>
+    <option name="LOG_INFO_OUTPUT">
+      <value>
+        <option name="FOREGROUND" value="bdbbc3" />
+      </value>
+    </option>
+    <option name="LOG_VERBOSE_OUTPUT">
+      <value>
+        <option name="FOREGROUND" value="5394ec" />
+        <option name="BACKGROUND" value="3c3f41" />
+      </value>
+    </option>
+  </attributes>
+</scheme>
