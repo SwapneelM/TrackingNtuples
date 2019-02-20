@@ -2,6 +2,7 @@
   <component name="FileTypeManager" version="17">
     <extensionMap>
       <mapping ext="i" type="C++" />
+      <mapping ext="in" type="PLAIN_TEXT" />
       <mapping ext="cxx" type="Python" />
     </extensionMap>
   </component>
