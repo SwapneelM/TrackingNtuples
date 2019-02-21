@@ -1,0 +1,39 @@
+# Create and activate a virtual environment using miniconda
+# If you have not already done so, create a 'workspace' at resources.web.cern.ch and increase its capacity to at least 20-50 GB
+# cd <afs work directory: you need some disk space for this!>
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+
+# Source Bashrc for changes to take effect and for the 'conda' command
+source ~/.bashrc
+conda create -n trackingenv python=2.7
+conda activate trackingenv
+
+# Clone the repository into your local directory
+git clone https://github.com/SwapneelM/TrackingNtuples.git
+
+# Change directory into where the data is stored
+cd TrackingNtuples/TrackingNtuples/scripts
+
+# Copy the extracted data into this directory and rename it for the notebook to use
+cp /afs/cern.ch/work/s/smehta/public/for_toluwase/outfile-ttbar-100.root .
+
+# Install the requirements for the project
+pip install -r requirements.txt
+
+# Run a Jupyter Notebook on LXPlus
+# Any 5-digit port ID should work (for some reason 4-digit doesn't work)
+# Obviously the upper limit is port ID 65535
+# You may have to set a default password for jupyter using the commend 'jupyter notebook password'
+# This will be the password you need to log into the jupyter notebook via a remote browser
+jupyter notebook --ip=127.0.0.1 --no-browser --port=64002
+
+# Now from your local machine run the following command
+# ssh -nNT -L 127.0.0.1:10000:127.0.0.1:64002 [cern-username]@lxplus[number].cern.ch
+# This tunnels the port 64002 on remote host lxplus to your machine's port 10000
+# Then you can access access it on your web browser at '127.0.0.1:10000'
+# Note that we can ideally replace '127.0.0.1' with 'localhost' if your `etc/hosts` file contains a line:
+# 127.0.0.1               localhost localhost. 
+# But in general, if you are not root you might not be able to modify these settings so stick with '127.0.0.1'
+
+

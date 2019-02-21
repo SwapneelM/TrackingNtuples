@@ -1,0 +1,17 @@
+venv
+tryenv
+venv3
+mlenv
+data/
+gated-graph-neural-network-samples/
+*.msgpack
+*.csv
+*.bak
+*.nvimlog
+*.md
+*.root
+*.pyc
+*.log
+*.txt
+*.DS_Store
+*.idea

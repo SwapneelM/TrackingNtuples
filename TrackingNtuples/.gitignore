@@ -1,9 +1,0 @@
-*.bak
-*.nvimlog
-*.md
-*.root
-*.pyc
-*.log
-*.txt
-*.DS_Store
-*.idea
