@@ -1,7 +1,7 @@
 venv
 tryenv
 venv3
-graphnetsenv
+graphnets
 mlenv
 data
 gated-graph-neural-network-samples
