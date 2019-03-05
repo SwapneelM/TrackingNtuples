@@ -68,6 +68,13 @@ git checkout CMSSW_10_2_5_Patatrack -b from-CMSSW_10_2_5_Patatrack
 # enable the developer's repository
 git cms-init
 
+# Merge swapneelm:patatracksters for the changes to TICL
+git cms-merge-topic swapneelm:patatracksters
+
+# Build the packages from scratch
+scram b clean
+scram b -j 12
+
 # Clone this project TrackingNtuples into the 'src' directory, scram build it, and you should be ready to go
 # cd CMSSW_10_2_5_Patatrack/src
 
