@@ -1,0 +1,11 @@
+Should_Transfer_Files = YES
+WhenToTransferOutput = ON_EXIT
+getenv = True
+executable = /afs/cern.ch/work/s/smehta/public/tsc-cern/trackingsim/batch.sh
++MaxRuntime = 160600
+
+Output = $(ProcId).out
+Error = $(ProcId).err
+Log = $(ProcId).log
+Arguments = $(ProcId) 3000
+Queue 500

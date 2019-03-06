@@ -139,7 +139,8 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> dxy_;
       std::vector<double> dsz_;
       std::vector<double> dz_;
-      std::vector<int> track_tp_idx_;
+      std::vector<double> pt_;
+      std::vector< std::vector<int> > track_tp_idx_;
       
       std::vector<double> eta_Error_;
       std::vector<double> phi_Error_;
@@ -147,6 +148,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<double> dxy_Error_;
       std::vector<double> dsz_Error_;
       std::vector<double> dz_Error_;
+      std::vector<double> pt_Error_;
       
       // Store the return values of parameter and 
       // covariance matrix functions
@@ -188,7 +190,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> stereo_phi_;
       std::vector<float> stereo_eta_;
       std::vector< int > stereo_layer_;
-      std::vector< int > stereo_tp_idx_;
+      std::vector< std::vector<int> > stereo_tp_idx_;
       std::vector< int > stereo_hit_match_;
     //  std::vector< edm::Ref<TrackingParticle> > stereo_tp_ref_;
       //std::vector< TrackingParticle > stereo_tp_;
@@ -200,7 +202,7 @@ class MyTrackingNtuples : public edm::one::EDAnalyzer<edm::one::SharedResources>
       std::vector<float> rphi_phi_;
       std::vector<float> rphi_eta_;
       std::vector< int > rphi_layer_;
-      std::vector< int > rphi_tp_idx_;
+      std::vector< std::vector<int> > rphi_tp_idx_;
       std::vector< int > rphi_hit_match_;
 
 
@@ -230,7 +232,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   rphiRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),   
   stereoRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
-   simHitTPMapToken_(consumes<SimHitTPAssociationProducer::SimHitTPAssociationList>(iConfig.getParameter<edm::InputTag>("simHitTPMap"))),
+  simHitTPMapToken_(consumes<SimHitTPAssociationProducer::SimHitTPAssociationList>(iConfig.getParameter<edm::InputTag>("simHitTPMap"))),
   association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("associator"))),
   clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
 {
@@ -256,6 +258,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
     tree_->Branch("qoverpError", &eta_Error_);
     tree_->Branch("dxyError", &dxy_Error_);
     tree_->Branch("dszError", &dsz_Error_);
+    tree_->Branch("trackPtError", &pt_Error_);
     
     tree_->Branch("trackParameters", &track_parameters_);
     tree_->Branch("covarianceArray", &covariance_array_);
@@ -310,6 +313,8 @@ void MyTrackingNtuples::reset_vectors() {
     dxy_Error_.clear();
     dsz_.clear();
     dsz_Error_.clear();
+    pt_.clear();
+    pt_Error_.clear();
     covariance_array_.clear();
     reshaped_cov_mat_.clear();
     track_tp_idx_.clear();
@@ -385,13 +390,13 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
     // Define a vector to store the tp index collection for each track
     std::vector<int> track_tp_vector_;
-    
     int trackPrintCount_ = 0;
 
     for(size_t track_idx=0; track_idx<tracks_->size(); ++track_idx) {
-        
+        track_tp_vector_.clear(); 
         edm::RefToBase<reco::Track> trk_(tracks_, track_idx);
         
+        int trackTPmatches_ = 0;
         //find the tracking particle based on the track
         auto gen_match = association->find(trk_);
         if (gen_match != association->end()) {
@@ -431,6 +436,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
         dxy_Error_.push_back(trk_->dxyError());
         dz_.push_back(trk_->dz());
         dz_Error_.push_back(trk_->dzError());
+        pt_.push_back(trk_->pt());
+        pt_Error_.push_back(trk_->ptError());
         
         covariance_mat_ = trk_->covariance();
         track_parameters_ = trk_->parameters();
@@ -524,6 +531,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     int clusterMatched_ = 0;
     int noMatch_ = 0;
     int printCount_ = 0;
+    int num_tps_ = 0;
+    std::vector<int> stereo_tp_vector_;
     
     // Approach to iterating over the stereorechits
     if((stereorechitColl_.product())->dataSize() > 0) {
@@ -539,7 +548,8 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             
             for (stereo_iterRecHit_ = stereorechitRangeIteratorBegin; 
                   stereo_iterRecHit_ != stereorechitRangeIteratorEnd; ++stereo_iterRecHit_) {
-
+                num_tps_ = 0;
+                stereo_tp_vector_.clear();
                 auto stereo_cluster_ = stereo_iterRecHit_->firstClusterRef();
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(stereo_cluster_);
 
@@ -575,9 +585,10 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 } else {
                     noMatch_++;
                     stereo_hit_match_.push_back(0);
-                    stereo_tp_idx_.push_back(-1);
                 }
 
+                stereo_tp_idx_.push_back(stereo_tp_vector_);
+                
                 // Obtain the local position in terms of coordinates and store it in the vector
                 GlobalPoint stereo_gp = stereo_iterRecHit_->globalPosition(); 
                 stereo_x_.push_back(stereo_gp.x());
@@ -597,8 +608,9 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
     clusterMatched_ = 0;
     noMatch_ = 0;
     printCount_ = 0;
+    num_tps_ = 0;
+    std::vector<int> rphi_tp_vector_;
 
-    // TODO: Create a function 'retrieve_rechits' to handle this process
     // Approach to iterating over the rphirechits/monorechits
     if((rphirechitColl_.product())->dataSize() > 0) {
         SiStripRecHit2DCollection::const_iterator rphirecHitIdIterator = (rphirechitColl_.product())->begin();
@@ -616,9 +628,12 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
             for (rphi_iterRecHit_ = rechitRangeIteratorBegin; 
                 rphi_iterRecHit_ != rechitRangeIteratorEnd; ++rphi_iterRecHit_) {
           
+                num_tps_ = 0;
+                rphi_tp_vector_.clear();
                 auto rphi_cluster_ = rphi_iterRecHit_->firstClusterRef();
                 auto clusterTPMapIter_ = clusterToTPMap_.equal_range(rphi_cluster_);
 
+                // TrackingParticle default_rphi_tp_;
                 if (clusterTPMapIter_.first != clusterTPMapIter_.second) {
                     clusterFound_++;
                      for (auto clusterIter_ = clusterTPMapIter_.first; clusterIter_ != clusterTPMapIter_.second; clusterIter_++) {
@@ -648,8 +663,9 @@ void MyTrackingNtuples::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 } else {
                     noMatch_++;
                     rphi_hit_match_.push_back(0);
-                    rphi_tp_idx_.push_back(-1);
                 }
+                
+                rphi_tp_idx_.push_back(rphi_tp_vector_);
 
                 // Obtain the local position in terms of coordinates and store it in the vector
                         GlobalPoint rphi_gp = rphi_iterRecHit_->globalPosition();
