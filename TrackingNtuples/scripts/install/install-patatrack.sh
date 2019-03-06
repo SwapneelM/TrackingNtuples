@@ -11,7 +11,7 @@ chmod a+x $VO_CMS_SW_DIR/bootstrap.sh
 
 $VO_CMS_SW_DIR/bootstrap.sh -a slc7_amd64_gcc700 -r cms -path $VO_CMS_SW_DIR setup
 
-# They already moved to 10_2_6 from 10_2_5 just a few days ago, this is madness (but also nice)
+# Patatrack may already have moved several versions ahead since development is underway (currently on 10_5_0)
 $VO_CMS_SW_DIR/common/cmspkg -a slc7_amd64_gcc700 install -y cms+cmssw+CMSSW_10_2_5
 
 # If this next command doesn't work it's probably because of shitty formatting, refer https://github.com/cms-patatrack/patatrack-website/blob/8a184fccb571b3cebab4dd5ad9d4790e500c916f/wiki/PatatrackReleases.md
@@ -46,10 +46,40 @@ https://cern.ch/fwyzard/patatrack/rpms/CMSSW_10_2_X/slc7_amd64_gcc700/external+t
 
 # Now follow the instructions at https://github.com/cms-patatrack/patatrack-website/blob/a5f3fca866b928c2f88ae1cc0c75151ea83a5a91/wiki/PatatrackDevelopment.md
 # This will set up your working area for patatrack 10_2_5
+# The instructions below are the same as the ones at the link above.
+cd ..
 
-# Clone my project TrackingNtuples into the 'src' directory, scram build it, and you should be ready to go
+scram list CMSSW_10_2_5
+cmsrel CMSSW_10_2_5_Patatrack
+cd CMSSW_10_2_5_Patatrack/src
+cmsenv
+
+git cms-init --upstream-only || true
+# you will see the error
+#     fatal: 'CMSSW_10_2_5_Patatrack' is not a commit and a branch 'from-CMSSW_10_2_5_Patatrack' cannot be created from it
+# it is expected, just follow the rest of the instructions
+
+# add the Patatrack remote and branches
+git cms-remote add cms-patatrack
+git checkout CMSSW_10_2_5_Patatrack -b CMSSW_10_2_X_Patatrack
+git branch -u cms-patatrack/CMSSW_10_2_X_Patatrack
+git checkout CMSSW_10_2_5_Patatrack -b from-CMSSW_10_2_5_Patatrack
+
+# enable the developer's repository
+git cms-init
+
+# Merge swapneelm:patatracksters for the changes to TICL
+# git cms-merge-topic swapneelm:patatracksters
+# TODO: FIx build failure on merge topic (avoid deletion of Heterogenous/..../test_main.cpp)
+
+# Build the packages from scratch
+scram build clean
+scram -j 12
+
+# Clone this project TrackingNtuples into the 'src' directory, scram build it, and you should be ready to go
 # cd CMSSW_10_2_5_Patatrack/src
-# git clone https://github.com/SwapneelM/TrackingNtuples.git
-# cd TrackingNtuples/
-# scram b -j 4
+
+git clone https://github.com/SwapneelM/TrackingNtuples.git
+cd TrackingNtuples/
+scram -j 4
 
