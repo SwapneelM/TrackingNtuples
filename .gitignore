@@ -1,9 +1,10 @@
 venv
 tryenv
 venv3
+graphnets
 mlenv
-data/
-gated-graph-neural-network-samples/
+data
+gated-graph-neural-network-samples
 *.msgpack
 *.csv
 *.bak

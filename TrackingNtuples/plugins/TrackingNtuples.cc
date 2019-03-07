@@ -232,7 +232,7 @@ MyTrackingNtuples::MyTrackingNtuples(const edm::ParameterSet& iConfig)
   trackExtraToken_(consumes<reco::TrackExtraCollection>(iConfig.getParameter<edm::InputTag>("pixelTracks"))),
   rphiRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("rphiRecHits"))),   
   stereoRecHitToken_(consumes<SiStripRecHit2DCollection>(iConfig.getParameter<edm::InputTag>("stereoRecHits"))),
-   simHitTPMapToken_(consumes<SimHitTPAssociationProducer::SimHitTPAssociationList>(iConfig.getParameter<edm::InputTag>("simHitTPMap"))),
+  simHitTPMapToken_(consumes<SimHitTPAssociationProducer::SimHitTPAssociationList>(iConfig.getParameter<edm::InputTag>("simHitTPMap"))),
   association_(consumes< reco::RecoToSimCollection >(iConfig.getParameter<edm::InputTag>("associator"))),
   clusterTPMapToken_(consumes< ClusterTPAssociation >(iConfig.getParameter<edm::InputTag>("clusterTPMap")))
 {
