@@ -1,5 +1,4 @@
 absl-py==0.7.0
-msgpack
 appnope==0.1.0
 astor==0.7.1
 awkward==0.4.4
