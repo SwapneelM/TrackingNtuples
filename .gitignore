@@ -5,6 +5,7 @@ data/
 gated-graph-neural-network-samples/
 tfrecords/
 jan-tfrecords/
+.ipynb_checkpoints/
 *.msgpack
 *.csv
 *.bak
