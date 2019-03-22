@@ -228,8 +228,8 @@ rechit_param_global_df_uncut_.index = pd.RangeIndex(len(rechit_global_df_uncut_.
 # Update the Global Rechit IDs
 rechit_global_id_dict_ = {}
 rechit_global_id_dict_['rechit_id'] = range(len(rechit_global_df_uncut_))
-rechit_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_local_id_dict_))    
-rechit_param_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_local_id_dict_))    
+rechit_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))    
+rechit_param_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))    
 
 # Place the cut on rechit eta to ensure you consider only the hits in the tracker
 rechit_param_global_df_ = rechit_param_global_df_uncut_[np.abs(rechit_param_global_df_uncut_['rechit_eta']) <= 0.9].copy()
@@ -247,7 +247,7 @@ rechit_param_global_df_.index = pd.RangeIndex(len(rechit_global_df_.index))
 # And so that the node feature vector can be simpler to create sequentially
 rechit_local_id_dict_ = {'rechit_local_id' : []}
 # Find the minimum number of rechits in the final list of events
-min_num_of_rechits_ = 9999
+min_num_of_rechits_ = 99999
 for event_id_ in range(number_of_events_):
     # Retrieve the subset of the global rechit dataframe for this event_id
     rechit_local_range_ = range(len(rechit_global_df_[rechit_global_df_['event_id']==event_id_]))
