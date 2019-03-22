@@ -1,72 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Table of Contents
-# 
-# 
-# ### Part I - Preprocessing
-# ---------------------------
-# 
-# 1. [View Keys in Root Data](#View-the-Keys-in-the-Imported-Data)
-# 
-# 2. [Optimisation Tests I: Python](#Optimisation-Tests)
-# 
-# 3. [Data Conversion using Uproot](#Load-Data-into-Arrays)
-# 
-# 4. Preprocessing
-# 	- [Optimisation](#Preprocessing-1:-Reformat-List-of-Indices-to-Sets-of-Indices-for-each-Rechit)
-# 	- [Convert to Dataframes](#Preprocessing-2:-Add-all-data-into-dataframes)
-# 	- [Create Global Rechit Dataframe](#Create-a-Global-Dataframe-of-Rechits)
-# 
-# 5. [Rechit to Track Matching](#Match-the-Rechits-to-Tracks-and-Create-a-Global-Array-of-Tracks)
-# 
-# 6. [Optimisation Tests II: Dataframes](#Test-Performance-of-df.loc-versus-multi-index-retrieval-[-][-])
-# 
-# 
-# ### Part II: Raw Data Analysis and Plots
-# -----------------------------------------
-# 
-# 1. [Count Data in Track to Rechit Map](#Analyse-the-data-stored-in-the-track_to_rechit_map_)
-# 
-# 2. [Generate Match Count Plots](#Generate-Plots)
-# 	- [Counting Matched vs. Unmatched Rechits](#Analyse-Matched/Unmatched-Rechits)
-# 	- [Plot Count of Track and TP Matched Rechits](#Plot-the-Rechits-Matched-to-TP,-Track,-or-Unmatched)
-# 
-# 3. Track Analysis
-# 	- [Compare Eta between Tracks and their Rechits](#Compare-Track-and-Matched-Rechit-Eta)
-# 	- [Plot Track Parameter Distribution Histograms](#Plot-Track-Parameters)
-# 	- [Analyse/Filter High-Pt Events](#Filter-High-Pt-Events)
-# 
-# 4. Rechit/Simhit Analysis
-# 	- [Plot Simhit Distribution 2D](#Plot-SimHit-Distribution-in-X-and-Y-Axes)
-# 	- [Simhit Match Count](#Count-Simhits-Matched-to-Tracks)
-# 	- [Realistic Geometry Simulation: Hole](#Plot-the-Hole-in-the-Data-(2D-Plot;-3D-Axes))
-# 	- [Plot MonoRechit Distribution 2D](#Visualize-the-Mono-Rechits)
-# 	- [Plot Rechit Parameter Distribution Histograms](#Plot-Rechit-Parameters)
-# 	- [Plot StereoRechit Distribution 2D](#Visualize-the-Stereo-Rechits)
-# 
-# 5. Data Storage
-# 	- [Verify Data is not Corrupted](#Testing-Integrity-of-internal-data-storage)
-# 	- [Write Data to Serialized Output Format](#Data-Storage-for-TF/PyTorch/Graph-Library)
-# 
-# 
-# ### Part III: Filtered (Cut) Data Analysis and Plots
-# --------------------------------------------------
-# 
-# 1. [Place Cuts on Rechits](#Place-the-Cuts-on-Rechits-=>-eta-(-0.9,-0.9))
-#     - [Scatter Plot of Filtered Rechits](#Plot-the-Hits-without-Connections)
-# 
-# 2. [Plot 2D Rechit Parameters](#Plot-the-2D-Rechit-Parameters-for-Filtered-Hits)
-# 
-# 3. [Place Cuts on Tracks](#Place-the-cuts-on-tracks-by-Eta-and-Pt)
-# 
-# 4. [Plot only Filtered Rechits](#Plot-only-the-filtered-rechits)
-# 
-# 5. [Plot Matched/Unmatched Track Distribution](#Plot-Track-Distribution)
-
-# In[110]:
-
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -74,15 +8,21 @@ import uproot
 import pandas as pd
 from collections import OrderedDict
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Parse the jobid for use in naming the outfiles', add_help=True)
+parser.add_argument('jobid', type=int, help='The unique jobid that htcondor associates with each job')
+parser.add_argument('n_events', type=int, help='The number of events contained in each root file')
+parser.add_argument('outpath', type=str, help='The path to the output where you want to store your tfrecords')
+args = parser.parse_args()
 
 # ## View the Keys in the Imported Data
 
 # In[111]:
 
-
-gen_event_ = "ttbar-100"
-number_of_events_ = 100
-outfile_ = "outfile-" + gen_event_ + ".root"
+jobid_ = args.jobid
+number_of_events_ = args.n_events
+outfile_ = jobid_ + ".root"
 data_ = uproot.open(outfile_)["ntuples"]["tree"]
 # data_.keys()
 
@@ -578,85 +518,11 @@ def count_matched_items(item_type_):
     
     return item_count_dict_, item_id_dict_
 
-def plot_matched_vs_unmatched(item_count_, keys_, item_type_):
-    ax_ = plt.subplot()
-    alpha_ = 0.4
-    for key in keys_:
-        ax_.hist(item_count_[key], histtype='stepfilled', bins=number_of_events_, 
-             orientation='vertical', alpha=alpha_, label=key)
-        alpha_ += 0.2
-    plt.grid(True)
-    plt.legend()
-    plt.ylabel('Frequency')
-    plt.xlabel('Count of ' + item_type_)
-    plt.title(item_type_ + ' Distribution')
-    plt.savefig('plots/' + gen_event_ + '/' + item_type_ + '/matchdistribution')
-    plt.show()
-    return
-
-
 # In[126]:
 
 
 track_count_, track_ids_ = count_matched_items('track')
 rechit_count_, rechit_ids_ = count_matched_items('rechit')
-
-
-# ### Testing Integrity of internal data storage 
-
-# In[127]:
-
-
-# Correlate the data to confirm the dataframe has not been corrupted
-hit_tp_count_ = {}
-
-for (id_, tp_idx_list_) in rechit_global_df_["rechit_tp_index"].iteritems():
-    tp_len_ = len(tp_idx_list_)
-    if tp_len_ in hit_tp_count_:
-        hit_tp_count_[tp_len_] += 1
-    else:
-        hit_tp_count_[tp_len_] = 1
-print (hit_tp_count_)
-
-
-# ## Data Storage for TF-DeepHGCal/PyTorch/Graph Library
-
-# In[128]:
-
-
-'''DataFrame Documentation for Pandas states that writing and reading from msgpack is an experimental feature.
-It is to be released soon, but please use it with care to ensure data is not corrupted.
-
-Note: When working with large datasets (>1000 events), you will not be able to save the data.
-The filesize for rechit_global_df_ is 76 MB for 100 events thus 760 MB for 1000 events and so on.'''
-
-
-# In[129]:
-
-
-'''
-Writing to serialized format fails in case of copied dataframes as the columns are sets
-
-Solution: Iterate over all Global DataFrames, find the columns to replace, 
-and replace with lists instead of sets so that they are serializable
-'''
-'''
-for dataframe_ in [track_global_df_, track_param_global_df_, rechit_global_df_, rechit_param_global_df_]:
-    dataframe_to_update_ = dataframe_.copy(deep=True)
-    columns_to_replace_ = ['rechit_ids', 'rechit_local_ids', 'rechit_tp_index', 'track_tp_index', 'track_matches']
-    for column_name_ in columns_to_replace_:    
-        if column_name_ in dataframe_to_update_:
-            list_arr_ = []
-            for set_ in dataframe_to_update_[column_name_]:
-                list_arr_.append(list(set_))
-            dataframe_to_update_.update(pd.Series(list_arr_, name=column_name_))
-'''
-
-
-# In[ ]:
-
-
-
 
 
 # ## DeepHGCal/TFRecords Data Preparation
@@ -670,8 +536,8 @@ import tensorflow as tf
 # In[131]:
 
 
-MAX_RECHIT_LEN = 3600
-MAX_TRACK_LEN = 120
+max_hits = 3600
+max_tracks = 100
 
 
 # In[132]:
@@ -911,11 +777,16 @@ def _parse_function(example_proto, data_dimensions=None):
 
 
 # In[136]:
+import os
 
+output_directory = os.path.join(args.outpath, 'tfrecords')
+
+if not os.path.exists(output_directory):
+    os.makedirs(output_directory)
 
 '''Write the TFRecord File'''
 
-with tf.python_io.TFRecordWriter('tfrecords/ttbar-10.tfrecord', 
+with tf.python_io.TFRecordWriter(output_directory + '/' + str(args.jobid) + '_' + str(args.n_events) + '.tfrecord', 
                                  options=tf.python_io.TFRecordOptions(
                                     tf.python_io.TFRecordCompressionType.GZIP)) as tfwriter:
     for event_number_, data_record_ in enumerate(data_dict_list_):
