@@ -1,4 +1,4 @@
-i=1
+i=0
 for file in /eos/home-s/smehta/trackingsim/dataset/*
     do
     	echo "Working on file $file"
