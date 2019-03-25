@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import uproot
 import pandas as pd
@@ -11,30 +9,49 @@ from collections import OrderedDict
 import argparse
 
 parser = argparse.ArgumentParser(description='Parse the jobid for use in naming the outfiles', add_help=True)
-parser.add_argument('jobid', type=int, help='The unique jobid that htcondor associates with each job')
-parser.add_argument('n_events', type=int, help='The number of events contained in each root file')
-parser.add_argument('outpath', type=str, help='The path to the output where you want to store your tfrecords')
+parser.add_argument('infile', help='input file')
+parser.add_argument('outfile', type=str, help='The path to the output where you want to store your tfrecords')
+parser.add_argument('-n', '--n_events', type=int, default=-1, help='input file')
 args = parser.parse_args()
 
 # ## View the Keys in the Imported Data
 
 # In[111]:
-
-jobid_ = args.jobid
-number_of_events_ = args.n_events
-outfile_ = jobid_ + ".root"
-data_ = uproot.open(outfile_)["ntuples"]["tree"]
-# data_.keys()
-
+data_file_ = uproot.open(args.infile)["ntuples"]["tree"]
+branches_to_read_ = [
+    'stereoTPIndex',
+    'monoTPIndex',
+    'trackTPIndex',
+    'stereoHitX', 
+    'stereoHitY', 
+    'stereoHitZ', 
+    'monoHitX', 
+    'monoHitY', 
+    'monoHitZ',
+    'stereoHitR', 
+    'stereoHitEta', 
+    'stereoHitPhi', 
+    'monoHitR', 
+    'monoHitEta', 
+    'monoHitPhi',
+    'trackEta',
+    'trackPhi',
+    'trackPt',
+    'qoverp',
+    'dxy',
+    'dsz',
+    ]
+number_of_events_ = data_file_.numentries if args.n_events == -1 else args.n_events
+data_ = data_file_.arrays(branches_to_read_, entrystop=number_of_events_)
 
 # ## Check the Integrity of the Imported Data 
 
 # In[112]:
 
-
-stereo_tp_idx_ = data_.array('stereoTPIndex')
-mono_tp_idx_ = data_.array('monoTPIndex')
-track_tp_idx_ = data_.array('trackTPIndex')
+from pdb import set_trace
+stereo_tp_idx_ = data_[b'stereoTPIndex']
+mono_tp_idx_ = data_[b'monoTPIndex']
+track_tp_idx_ = data_[b'trackTPIndex']
 
 # Check that both have been generated for the same number of events
 # Just for clarity
@@ -76,12 +93,12 @@ Load the track parameters into the respective arrays to be added into the rechit
 '''
 
 rechit_cartesian_ = OrderedDict({})
-for key in ['stereoHitX', 'stereoHitY', 'stereoHitZ', 'monoHitX', 'monoHitY', 'monoHitZ']:
-    rechit_cartesian_[key] = data_.array(key)
+for key in [b'stereoHitX', b'stereoHitY', b'stereoHitZ', b'monoHitX', b'monoHitY', b'monoHitZ']:
+    rechit_cartesian_[key] = data_[key]
 
 rechit_polar_ = OrderedDict({})
-for key in ['stereoHitR', 'stereoHitEta', 'stereoHitPhi', 'monoHitR', 'monoHitEta', 'monoHitPhi']:
-    rechit_polar_[key] = data_.array(key)
+for key in [b'stereoHitR', b'stereoHitEta', b'stereoHitPhi', b'monoHitR', b'monoHitEta', b'monoHitPhi']:
+    rechit_polar_[key] = data_[key]
 
 
 # ## Preprocessing 1: Reformat List of Indices to Sets of Indices for each Rechit
@@ -152,19 +169,19 @@ def create_global_rechit_df(stereo_tp_idx_, mono_tp_idx_, rechit_cartesian_dict_
         rechit_param_global_map_['rechit_id'].extend(
             range(global_counter_, global_counter_ + event_rechit_count_))
         rechit_param_global_map_['event_id'].extend([event_id_] * event_rechit_count_)  
-        rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_['stereoHitX'][event_id_])
-        rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_['monoHitX'][event_id_])
-        rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_['stereoHitY'][event_id_])
-        rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_['monoHitY'][event_id_])
-        rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_['stereoHitZ'][event_id_])
-        rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_['monoHitZ'][event_id_])
+        rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_[b'stereoHitX'][event_id_])
+        rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_[b'monoHitX'][event_id_])
+        rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_[b'stereoHitY'][event_id_])
+        rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_[b'monoHitY'][event_id_])
+        rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_[b'stereoHitZ'][event_id_])
+        rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_[b'monoHitZ'][event_id_])
         
-        rechit_param_global_map_['rechit_r'].extend(rechit_polar_dict_['stereoHitR'][event_id_])
-        rechit_param_global_map_['rechit_r'].extend(rechit_polar_dict_['monoHitR'][event_id_])
-        rechit_param_global_map_['rechit_phi'].extend(rechit_polar_dict_['stereoHitPhi'][event_id_])
-        rechit_param_global_map_['rechit_phi'].extend(rechit_polar_dict_['monoHitPhi'][event_id_])
-        rechit_param_global_map_['rechit_eta'].extend(rechit_polar_dict_['stereoHitEta'][event_id_])
-        rechit_param_global_map_['rechit_eta'].extend(rechit_polar_dict_['monoHitEta'][event_id_])
+        rechit_param_global_map_['rechit_r'].extend(  rechit_polar_dict_[b'stereoHitR'][event_id_])
+        rechit_param_global_map_['rechit_r'].extend(  rechit_polar_dict_[b'monoHitR'][event_id_])
+        rechit_param_global_map_['rechit_phi'].extend(rechit_polar_dict_[b'stereoHitPhi'][event_id_])
+        rechit_param_global_map_['rechit_phi'].extend(rechit_polar_dict_[b'monoHitPhi'][event_id_])
+        rechit_param_global_map_['rechit_eta'].extend(rechit_polar_dict_[b'stereoHitEta'][event_id_])
+        rechit_param_global_map_['rechit_eta'].extend(rechit_polar_dict_[b'monoHitEta'][event_id_])
         rechit_param_global_map_['rechit_local_id'].extend(range(event_rechit_count_))
         global_counter_ += event_rechit_count_
     # Convert dict to dataframe
@@ -314,12 +331,12 @@ for event_id_ in range(len(track_tp_idx_)):
     
     # Fill in the Global Track Parameters
     track_param_global_map_['track_id'].extend(global_track_id_range_)
-    track_param_global_map_['track_eta'].extend(data_.array('trackEta')[event_id_])
-    track_param_global_map_['track_phi'].extend(data_.array('trackPhi')[event_id_])
-    track_param_global_map_['track_pt'].extend(data_.array('trackPt')[event_id_])
-    track_param_global_map_['track_qoverp'].extend(data_.array('qoverp')[event_id_])
-    track_param_global_map_['track_dxy'].extend(data_.array('dxy')[event_id_])
-    track_param_global_map_['track_dsz'].extend(data_.array('dsz')[event_id_])
+    track_param_global_map_['track_eta'].extend(data_[b'trackEta'][event_id_])
+    track_param_global_map_['track_phi'].extend(data_[b'trackPhi'][event_id_])
+    track_param_global_map_['track_pt'].extend(data_[b'trackPt'][event_id_])
+    track_param_global_map_['track_qoverp'].extend(data_[b'qoverp'][event_id_])
+    track_param_global_map_['track_dxy'].extend(data_[b'dxy'][event_id_])
+    track_param_global_map_['track_dsz'].extend(data_[b'dsz'][event_id_])
     
     # Retrieve the subset of the global rechit dataframe for this event_id
     event_df_ = rechit_global_df_[rechit_global_df_['event_id']==event_id_]
@@ -434,16 +451,7 @@ for rechit_id in track_to_rechit_df_.loc[trk_id_]['rechit_ids']:
 
 # # Generate Plots
 
-# In[124]:
-
-
-from mpl_toolkits.mplot3d import Axes3D
 from cycler import cycler
-from matplotlib.colors import Colormap
-
-#fig_ = plt.figure()
-#ax_ = Axes3D(fig_)
-
 
 # ### Analyse Matched/Unmatched Rechits
 
@@ -779,14 +787,14 @@ def _parse_function(example_proto, data_dimensions=None):
 # In[136]:
 import os
 
-output_directory = os.path.join(args.outpath, 'tfrecords')
+output_directory = os.path.dirname(args.outfile)
 
-if not os.path.exists(output_directory):
+if output_directory and not os.path.exists(output_directory):
     os.makedirs(output_directory)
 
 '''Write the TFRecord File'''
 
-with tf.python_io.TFRecordWriter(output_directory + '/' + str(args.jobid) + '_' + str(args.n_events) + '.tfrecord', 
+with tf.python_io.TFRecordWriter(args.outfile,
                                  options=tf.python_io.TFRecordOptions(
                                     tf.python_io.TFRecordCompressionType.GZIP)) as tfwriter:
     for event_number_, data_record_ in enumerate(data_dict_list_):
