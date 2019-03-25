@@ -11,7 +11,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Parse the jobid for use in naming the outfiles', add_help=True)
 parser.add_argument('infile', help='input file')
 parser.add_argument('outfile', type=str, help='The path to the output where you want to store your tfrecords')
-parser.add_argument('-n', '--n_events', type=int, default=-1, help='input file')
+parser.add_argument('-n', '--n_events', type=int, default=-1, help='number of events to process')
+parser.add_argument('-o', '--offset', type=int, default=-1, help='number of events to skip')
 args = parser.parse_args()
 
 # ## View the Keys in the Imported Data
@@ -42,7 +43,18 @@ branches_to_read_ = [
     'dsz',
     ]
 number_of_events_ = data_file_.numentries if args.n_events == -1 else args.n_events
-data_ = data_file_.arrays(branches_to_read_, entrystop=number_of_events_)
+
+entrystart = None
+entrystop = None if args.n_events == -1 else args.n_events
+if args.offset != -1:
+    entrystart = args.offset
+    entrystop += entrystart
+
+data_ = data_file_.arrays(
+    branches_to_read_, 
+    entrystart=entrystart,
+    entrystop=entrystop
+)
 
 # ## Check the Integrity of the Imported Data 
 
