@@ -705,9 +705,10 @@ def create_tf_example(graph_dict=None, max_hits=None, max_tracks=None, set_one_h
         original_data = graph_dict['data']
         data_dimensions = original_data.shape[1]
         # If number of points are less than max_hits threshold
+        event_data_size = max_hits * data_dimensions
+
+        # If number of points is less than max_hits, pad the data
         if original_data.shape[0] < max_hits:
-            event_data_size = max_hits * data_dimensions
-            
             # Reshape the original data into a 1D array
             # TODO: Is np.ravel faster? Does it matter?
             original_data = graph_dict['data'].reshape(-1).astype(np.float32)
