@@ -42,14 +42,25 @@ branches_to_read_ = [
     'dxy',
     'dsz',
     ]
+
+# Set the total number of events in the data file to be updated if offset and n_events are provided
 number_of_events_ = data_file_.numentries if args.n_events == -1 else args.n_events
 
+# Default value for starting to read the root file into an array
 entrystart = None
+
 entrystop = None if args.n_events == -1 else args.n_events
 if args.offset != -1:
     entrystart = args.offset
-    entrystop += entrystart
+    if entrystop is None:
+        # Stop reading entries at the end of all events
+        entrystop = number_of_events_
+    else:
+        entrystop += entrystart
+    # No. of events changes if both offset and n_events are specified
+    number_of_events_ = entrystop - entrystart
 
+# array will be indexed [entrystart, ... entrystop-1]
 data_ = data_file_.arrays(
     branches_to_read_, 
     entrystart=entrystart,
