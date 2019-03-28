@@ -23,17 +23,17 @@ branches_to_read_ = [
     'stereoTPIndex',
     'monoTPIndex',
     'trackTPIndex',
-    'stereoHitX', 
-    'stereoHitY', 
-    'stereoHitZ', 
-    'monoHitX', 
-    'monoHitY', 
+    'stereoHitX',
+    'stereoHitY',
+    'stereoHitZ',
+    'monoHitX',
+    'monoHitY',
     'monoHitZ',
-    'stereoHitR', 
-    'stereoHitEta', 
-    'stereoHitPhi', 
-    'monoHitR', 
-    'monoHitEta', 
+    'stereoHitR',
+    'stereoHitEta',
+    'stereoHitPhi',
+    'monoHitR',
+    'monoHitEta',
     'monoHitPhi',
     'trackEta',
     'trackPhi',
@@ -42,20 +42,32 @@ branches_to_read_ = [
     'dxy',
     'dsz',
     ]
+
+# Set the total number of events in the data file to be updated if offset and n_events are provided
 number_of_events_ = data_file_.numentries if args.n_events == -1 else args.n_events
 
+# Default value for starting to read the root file into an array
 entrystart = None
+
 entrystop = None if args.n_events == -1 else args.n_events
 if args.offset != -1:
     entrystart = args.offset
+    if entrystop is None:
+        # Stop reading entries at the end of all events
+        entrystop = number_of_events_
+    else:
+        entrystop += entrystart
+    # No. of events changes if both offset and n_events are specified
+    number_of_events_ = entrystop - entrystart
 
+# array will be indexed [entrystart, ... entrystop-1]
 data_ = data_file_.arrays(
-    branches_to_read_, 
+    branches_to_read_,
     entrystart=entrystart,
     entrystop=entrystop
 )
 
-# ## Check the Integrity of the Imported Data 
+# ## Check the Integrity of the Imported Data
 
 # In[112]:
 
@@ -148,39 +160,39 @@ Adding stereo and mono rechit data into a global dataframe
 def create_global_rechit_df(stereo_tp_idx_, mono_tp_idx_, rechit_cartesian_dict_, rechit_polar_dict_):
     rechit_global_map_ = OrderedDict({'event_id': [], 'rechit_id': [], 'rechit_tp_index': [],
                                       'track_ids': [], 'match_count': [], 'rechit_local_id': []})
-    rechit_param_global_map_ = OrderedDict({'event_id': [], 'rechit_id':[], 'rechit_x': [], 'rechit_y': [], 'rechit_z': [], 
+    rechit_param_global_map_ = OrderedDict({'event_id': [], 'rechit_id':[], 'rechit_x': [], 'rechit_y': [], 'rechit_z': [],
                                             'rechit_r': [], 'rechit_phi': [], 'rechit_eta': [], 'rechit_local_id': []})
     global_counter_ = 0
-    
+
     if len(stereo_tp_idx_) != len(stereo_tp_idx_):
         raise ValueError('Rechit arrays represent differing event lengths [stereo, mono]:', len(stereo_tp_idx_), len(mono_tp_idx_))
-    
+
     for event_id_ in range(len(stereo_tp_idx_)):
         # Count the number of rechits in that event
         event_rechit_count_ = len(stereo_tp_idx_[event_id_]) + len(mono_tp_idx_[event_id_])
 
-        rechit_global_map_['event_id'].extend([event_id_] * event_rechit_count_)  
+        rechit_global_map_['event_id'].extend([event_id_] * event_rechit_count_)
         # appends SAME instance of [event_id] event_rechit_count_ times
-        
+
         rechit_global_map_['rechit_id'].extend(
-            range(global_counter_, global_counter_ + event_rechit_count_))     
+            range(global_counter_, global_counter_ + event_rechit_count_))
         rechit_global_map_['rechit_tp_index'].extend(stereo_tp_idx_[event_id_])
         rechit_global_map_['rechit_tp_index'].extend(mono_tp_idx_[event_id_])
         rechit_global_map_['track_ids'].extend([[] for _ in range(event_rechit_count_)])
         rechit_global_map_['match_count'].extend([0 for _ in range(event_rechit_count_)])
         rechit_global_map_['rechit_local_id'].extend(range(event_rechit_count_))
-        
+
         # Extend the hit_param_global_map_ with rechit parameters
         rechit_param_global_map_['rechit_id'].extend(
             range(global_counter_, global_counter_ + event_rechit_count_))
-        rechit_param_global_map_['event_id'].extend([event_id_] * event_rechit_count_)  
+        rechit_param_global_map_['event_id'].extend([event_id_] * event_rechit_count_)
         rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_[b'stereoHitX'][event_id_])
         rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_[b'monoHitX'][event_id_])
         rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_[b'stereoHitY'][event_id_])
         rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_[b'monoHitY'][event_id_])
         rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_[b'stereoHitZ'][event_id_])
         rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_[b'monoHitZ'][event_id_])
-        
+
         rechit_param_global_map_['rechit_r'].extend(  rechit_polar_dict_[b'stereoHitR'][event_id_])
         rechit_param_global_map_['rechit_r'].extend(  rechit_polar_dict_[b'monoHitR'][event_id_])
         rechit_param_global_map_['rechit_phi'].extend(rechit_polar_dict_[b'stereoHitPhi'][event_id_])
@@ -193,7 +205,7 @@ def create_global_rechit_df(stereo_tp_idx_, mono_tp_idx_, rechit_cartesian_dict_
     rechit_global_df_ = df.from_dict(rechit_global_map_)
     rechit_param_global_df_ = df.from_dict(rechit_param_global_map_)
     return rechit_global_df_, rechit_param_global_df_
-    
+
 # Check Memory Usage of DataFrame
 # print rechit_global_df_.memory_usage(deep=True)
 # print rechit_param_global_df_.memory_usage(deep=True)
@@ -215,15 +227,15 @@ rechit_global_df_uncut_, rechit_param_global_df_uncut_ = create_global_rechit_df
 
 
 '''Check the maximum number of hits in an event'''
-max_len_ = 0 
+max_len_ = 0
 for i in range(number_of_events_):
     len_idx_ = len(stereo_tp_idx_[i]) + len(mono_tp_idx_[i])
     if len_idx_ > max_len_:
         max_len_ = len_idx_
         #print max_len_
-        
+
 print ("Maximum hits in an event are: ", max_len_)
-print("Average hits in an event are", float(sum([len(x) for x in stereo_tp_idx_]))/float(number_of_events_))     
+print("Average hits in an event are", float(sum([len(x) for x in stereo_tp_idx_]))/float(number_of_events_))
 
 
 # ### Format and Cut the Rechit DataFrames - also reorder Rechit Global and Local IDs
@@ -244,14 +256,14 @@ print("No of rechits left after 1st cut: ", len(rechit_global_df_uncut_))
 
 # After each cut, we reset the global rechit ids so that 'iloc' and 'loc' do not throw errors
 # Reset the Index of the Cut Dataframe that will become the new Global DataFrame
-rechit_global_df_uncut_.index = pd.RangeIndex(len(rechit_global_df_uncut_.index))  
+rechit_global_df_uncut_.index = pd.RangeIndex(len(rechit_global_df_uncut_.index))
 rechit_param_global_df_uncut_.index = pd.RangeIndex(len(rechit_global_df_uncut_.index))
 
 # Update the Global Rechit IDs
 rechit_global_id_dict_ = {}
 rechit_global_id_dict_['rechit_id'] = range(len(rechit_global_df_uncut_))
-rechit_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))    
-rechit_param_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))    
+rechit_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))
+rechit_param_global_df_uncut_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))
 
 # Place the cut on rechit eta to ensure you consider only the hits in the tracker
 rechit_param_global_df_ = rechit_param_global_df_uncut_[np.abs(rechit_param_global_df_uncut_['rechit_eta']) <= 0.9].copy()
@@ -262,7 +274,7 @@ print("No. of rechits left after second cut:", len(rechit_param_global_df_))
 
 # Reset the Index of the Cut Dataframe that will become the new Global DataFrame
 # This will lose the former global rechit index - can this affect the analysis in the future?
-rechit_global_df_.index = pd.RangeIndex(len(rechit_global_df_.index))  
+rechit_global_df_.index = pd.RangeIndex(len(rechit_global_df_.index))
 rechit_param_global_df_.index = pd.RangeIndex(len(rechit_global_df_.index))
 
 # Reset the local_rechit_ids for graph networks to have sequential nodes
@@ -275,16 +287,16 @@ for event_id_ in range(number_of_events_):
     rechit_local_range_ = range(len(rechit_global_df_[rechit_global_df_['event_id']==event_id_]))
     rechit_local_id_dict_['rechit_local_id'].extend(rechit_local_range_)
     if rechit_local_range_[-1] < min_num_of_rechits_:
-        min_num_of_rechits_ = rechit_local_range_[-1]        
-        
+        min_num_of_rechits_ = rechit_local_range_[-1]
+
 # Update the Global Rechit IDs
 rechit_global_id_dict_ = {}
 rechit_global_id_dict_['rechit_id'] = range(len(rechit_global_df_))
-rechit_global_df_.update(pd.DataFrame.from_dict(rechit_local_id_dict_))    
-rechit_param_global_df_.update(pd.DataFrame.from_dict(rechit_local_id_dict_))    
+rechit_global_df_.update(pd.DataFrame.from_dict(rechit_local_id_dict_))
+rechit_param_global_df_.update(pd.DataFrame.from_dict(rechit_local_id_dict_))
 
 # Update the Local Rechit IDs
-rechit_global_df_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))    
+rechit_global_df_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))
 rechit_param_global_df_.update(pd.DataFrame.from_dict(rechit_global_id_dict_))
 
 print (len(rechit_param_global_df_), "of", total_number_of_rechits_, float(len(rechit_param_global_df_))/float(total_number_of_rechits_), "hits remain")
@@ -306,9 +318,9 @@ Create the Global Track Array and Global Track Parameter Array.
 track_param_global_map_ = OrderedDict({})
 for key in ['track_id', 'track_eta', 'track_phi', 'track_qoverp', 'track_dxy', 'track_dsz', 'track_pt']:
     track_param_global_map_[key] = []
-    
+
 # Define the dictionaries to be cast into dataframes
-track_to_rechit_map_ = OrderedDict({'event_id': [], 'track_id': [], 'track_tp_index': [], 
+track_to_rechit_map_ = OrderedDict({'event_id': [], 'track_id': [], 'track_tp_index': [],
                                     'rechit_ids': [], 'match_count': [], 'rechit_local_ids': []})
 
 # Future Requirement?
@@ -319,22 +331,22 @@ rechit_to_track_map_ = OrderedDict({'event_id': [], 'rechit_id': [], 'rechit_tp_
 global_track_id_ = 0
 
 for event_id_ in range(len(track_tp_idx_)):
-    
+
     num_tracks_in_event_ = len(track_tp_idx_[event_id_])
 
     # Add track data to the dict in an efficient manner
     track_to_rechit_map_['event_id'].extend([event_id_] * num_tracks_in_event_)
-    
+
     global_track_id_range_ = range(global_track_id_, global_track_id_ + num_tracks_in_event_)
-    
+
     track_to_rechit_map_['track_id'].extend(global_track_id_range_)
     track_to_rechit_map_['track_tp_index'].extend(track_tp_idx_[event_id_])
-    
+
     # Append multiple empty lists in place of the values not filled yet
     track_to_rechit_map_['match_count'].extend([] for _ in range(num_tracks_in_event_))
     track_to_rechit_map_['rechit_ids'].extend([] for _ in range(num_tracks_in_event_))
     track_to_rechit_map_['rechit_local_ids'].extend([] for _ in range(num_tracks_in_event_))
-    
+
     # Fill in the Global Track Parameters
     track_param_global_map_['track_id'].extend(global_track_id_range_)
     track_param_global_map_['track_eta'].extend(data_[b'trackEta'][event_id_])
@@ -343,17 +355,17 @@ for event_id_ in range(len(track_tp_idx_)):
     track_param_global_map_['track_qoverp'].extend(data_[b'qoverp'][event_id_])
     track_param_global_map_['track_dxy'].extend(data_[b'dxy'][event_id_])
     track_param_global_map_['track_dsz'].extend(data_[b'dsz'][event_id_])
-    
+
     # Retrieve the subset of the global rechit dataframe for this event_id
     event_df_ = rechit_global_df_[rechit_global_df_['event_id']==event_id_]
-    
+
     # Check the TPs matched to tracks and find rechits for each TP (Stereo and Mono)
     for track_tp_list_ in track_tp_idx_[event_id_]:
         rechit_matches_ = []
         rechit_local_matches_ = []
         if len(track_tp_list_) == 0:
             continue
-            
+
         if len(track_tp_list_) == 1:
 
             # Iterate over the index and values of each rechit tp index list
@@ -367,25 +379,25 @@ for event_id_ in range(len(track_tp_idx_)):
             track_to_rechit_map_['match_count'][global_track_id_] = len(rechit_matches_)
             track_to_rechit_map_['rechit_ids'][global_track_id_] = set(rechit_matches_)
             track_to_rechit_map_['rechit_local_ids'][global_track_id_] = set(rechit_local_matches_)
-            
+
         # If track has multiple tp indices, pick the one with the most hits
 
         # Note: This approach *possibly* creates match issues if the tp index with more rechit matches
-        # has more 'common' hits with other tracks and is later discarded due to the common hits 
+        # has more 'common' hits with other tracks and is later discarded due to the common hits
         # belonging to other tracks
         if len(track_tp_list_) > 1:
             rechit_matches_array_ = []
             rechit_local_matches_array_ = []
             match_count_array_ = []
             tmp_dict_ = []  # syntax is off this is actually a list but otherwise ok
-            
-            print ("Found multiple TP indices in event", event_id_, "for global track") 
+
+            print ("Found multiple TP indices in event", event_id_, "for global track")
             print (global_track_id_, track_tp_list_)
-            
+
             for track_idx_ in track_tp_list_:
                 rechit_matches_ = []
                 rechit_local_matches_ = []
-                
+
                 # Iterate over the index and values of each rechit tp index list
                 for (idx_, tp_idx_list_) in event_df_['rechit_tp_index'].iteritems():
                     if track_idx_ in tp_idx_list_:
@@ -396,22 +408,22 @@ for event_id_ in range(len(track_tp_idx_)):
                 rechit_matches_array_.append(rechit_matches_)
                 rechit_local_matches_array_.append(rechit_local_matches_)
                 match_count_array_.append(len(rechit_matches_))
-            
+
             # Store the global rechit ids and count of matches in a temporary list
             for key, value, extra in zip(match_count_array_, rechit_matches_array_, rechit_local_matches_array_):
                 tmp_dict_.append((key, value, extra))
-            
+
             # Pick the largest number of matches and corresponding global rechit ids
             tmp_dict_ = sorted(tmp_dict_, reverse=True)
             track_to_rechit_map_['match_count'][global_track_id_] = tmp_dict_[0][0]
             track_to_rechit_map_['rechit_ids'][global_track_id_] = tmp_dict_[0][1]
             track_to_rechit_map_['rechit_local_ids'][global_track_id_] = tmp_dict_[0][2]
-        
-        
+
+
         # Check duplicates
         if len(set(rechit_matches_)) < len(rechit_matches_):
             raise ValueError('rechit_matches_ has duplicate values: Some Rechits are being matched twice!')
-        
+
         # Increment the Global Track ID
         global_track_id_ += 1
     rechit_global_df_.update(event_df_, join='left')
@@ -484,54 +496,54 @@ def count_matched_items(item_type_):
     item_id_dict_ = OrderedDict({'tp_matched':[], other_item_matched_:[], 'unmatched':[]})
 
     for event_id_ in range(number_of_events_):
-        
+
         # Create a slice of the dataframe with the data for that event
         event_df_ = (rechit_global_df_[rechit_global_df_['event_id']==event_id_]) if (item_type_=='rechit') else (track_global_df_[track_global_df_['event_id']==event_id_])
 
-        # Count the number of matched, unmatched, and total rechits 
+        # Count the number of matched, unmatched, and total rechits
         num_matched_ = sum(event_df_['match_count'] > 0)
         num_unmatched_ = sum(event_df_['match_count'] == 0)
         num_total_ = event_df_.shape[0]  # number of rows/rechits in the event
-        
+
         # Find and store the indices of matched and unmatched rechits
-        
+
         item_id_dict_[other_item_matched_].append(set(event_df_.loc[event_df_['match_count'] > 0, (item_id_)].tolist()))
         item_id_dict_['unmatched'].append(set(event_df_.loc[event_df_['match_count'] == 0, (item_id_)].tolist()))
-        
+
         # Sanity checks to ensure data has been added into the dataframe corrrectly
         assert num_total_ == (num_matched_ + num_unmatched_),         "Rechit counts (unmatched, matched, total) do not add up"
-            
+
         if item_type_ == 'rechit':
             # Check the number of total rechits for the event is the same as in raw data
             assert (len(rechit_global_df_[rechit_global_df_['event_id']==event_id_])) == num_total_,             "Rechits in dataframe %d and stereo_tp_idx_ %d do not match" % (num_total_, len(stereo_tp_idx_[event_id_]))
-        
+
         elif item_type_ == 'track':
             # Check the number of total tracks for the event is the same as in raw data
             assert len(track_tp_idx_[event_id_]) == num_total_,             "Tracks in dataframe %d and track_tp_idx_ %d do not match" % (num_total_, len(track_tp_idx_[event_id_]))
-    
+
         # Append the hit counts into the dataframe
         item_count_dict_['unmatched'].append(num_unmatched_)
         item_count_dict_['total'].append(num_total_)
-        
+
         # TODO: Why is default value for tracks -2 and rechits None?
         # Criteria for tracks is to check if -2 is in the track_tp_index
         # Because default match to tp index value is -2
         if item_type_ == 'track':
             tp_criteria_ = [(-2 not in list_) for list_ in event_df_[item_tp_index_]]
-        
+
         # Criteria for rechits is to check if length of rechit_tp_index is greater than 0
         # Because default match to tp index is none
         elif item_type_ == 'rechit':
             tp_criteria_ = [(len(list_) > 0) for list_ in event_df_[item_tp_index_]]
             #print len(event_df_[tp_criteria_])
-        
+
         item_count_dict_['tp_matched'].append(len(event_df_[tp_criteria_]))
         item_id_dict_['tp_matched'].append(event_df_[tp_criteria_])
-        
+
         # Criteria for filtering rechits matched to tracks based on 'track_ids' column
         other_item_criteria_ = [len(list_) > 0 for list_ in event_df_[other_item_ids_]]
         item_count_dict_[other_item_matched_].append(len(event_df_[other_item_criteria_]))
-    
+
     return item_count_dict_, item_id_dict_
 
 # In[126]:
@@ -574,7 +586,7 @@ for event_id_ in range(number_of_events_):
     data_dict_ = {}
     senders_ = []
     receivers_ = []
-    
+
     track_event_df_ = track_global_df_[track_global_df_['event_id'] == event_id_]
     track_param_df_ = track_param_global_df_.loc[track_event_df_['track_id']]
     track_df_ = track_event_df_.merge(track_param_df_)
@@ -582,33 +594,33 @@ for event_id_ in range(number_of_events_):
     # Sort the tracks according to increasing track_eta and associate a label with each track
     # This is done by resetting the track index based on increasing track_et
     track_df_.sort_values('track_eta', ascending=True, inplace=True)
-    track_df_.index = pd.RangeIndex(len(track_df_.index))  
+    track_df_.index = pd.RangeIndex(len(track_df_.index))
 
     rechit_event_df_ = rechit_global_df_[rechit_global_df_['event_id']==event_id_]
     rechit_param_df_ = rechit_param_global_df_[rechit_param_global_df_['event_id']==event_id_]
-    rechit_param_df_.index = pd.RangeIndex(len(rechit_param_df_.index))  
+    rechit_param_df_.index = pd.RangeIndex(len(rechit_param_df_.index))
     if len(rechit_event_df_) != len(rechit_param_df_):
         print("Error - param data and event data are not of equal length!")
-    
+
     number_of_rechits_in_event_ = len(rechit_event_df_)
-    
+
     # Set the node features as the track features that they belong to
     node_indices_ = np.array(rechit_param_df_['rechit_local_id'].tolist()).astype(int)
     node_labels_ = []
-    
+
     # Originally, we were setting node-level features based on the nodes but that can be done
     # for the test data set; instead here we can set the node-level features as the track features
     # at least for training and "learn" the track-level features (eta) based on which we can cluster the nodes?
     # The question still remains how do we initialize the edges ???
-    
-    # Update: Reverting to node-level features for each node as of now 
+
+    # Update: Reverting to node-level features for each node as of now
     # Modify it to combine some form of track-level features (target?)
-    
+
     # Skip the event if it has no rechits
     if len(node_indices_) == 0:
         print("Event ", event_id_, " has no rechits" )
         continue
-        
+
     rechit_feature_vector_ = np.transpose(np.array([
         rechit_param_df_['rechit_r'].tolist(),
         rechit_param_df_['rechit_eta'].tolist(),
@@ -621,7 +633,7 @@ for event_id_ in range(number_of_events_):
         np.zeros(len(rechit_param_df_['rechit_eta'])),
         np.zeros(len(rechit_param_df_['rechit_eta'])),
     ]))
-    
+
     track_feature_vector_ = np.transpose(np.array([
         np.zeros(len(track_df_['track_eta'])),
         track_df_['track_eta'].tolist(),
@@ -636,15 +648,15 @@ for event_id_ in range(number_of_events_):
     ]))
 
     node_feature_vector_ = np.vstack((rechit_feature_vector_, track_feature_vector_))
-    node_feature_vector_ = scaler.fit_transform(node_feature_vector_)    
-    
+    node_feature_vector_ = scaler.fit_transform(node_feature_vector_)
+
     # Initialize an array of zeros as labels for the nodes
     # Replace each zero with the int (label) associated with the track to which the rechit belongs
     # This becomes the target label to identify for that training example
     # Later, we will one_hot_encode the target label for working with the tensorflow model
     node_label_array_ = [0] * len(rechit_feature_vector_)
     track_labels_ = []
-    
+
     # Associate a label with each rechit
     for trk_idx_, row in track_df_.iterrows():
         track_rechit_id_array_ = row.rechit_local_ids
@@ -652,14 +664,14 @@ for event_id_ in range(number_of_events_):
         # Lower indices are thus associated with lower track eta
         for id_ in track_rechit_id_array_:
             node_label_array_[int(id_)] = trk_idx_ + 1  # We can now use index '0' as a 'noise' label
-        
+
         # Also associate a label with each track that we consider as a point among the data
         track_labels_.append(trk_idx_ + 1)
-    
-    print(len(node_label_array_))   
-   
+
+    print(len(node_label_array_))
+
     # Concatenate node and track labels into a single array
-    # Thereafter, concatenate everything into the node feature matrix 
+    # Thereafter, concatenate everything into the node feature matrix
     # Note that we duplicate the labels to work with off-the-shelf DeepHGCal Model
     nla_ = np.concatenate(((np.array(node_label_array_)), np.array(track_labels_)), axis=0)  # add track labels here
     # node_feature_vector_ = np.concatenate((rechit_feature_vector_, nla_[:, None], nla_[:, None]), axis = 1)
@@ -671,7 +683,7 @@ for event_id_ in range(number_of_events_):
     "data": node_feature_vector_,
     "labels": nla_,
     }
-    
+
     data_dict_list_.append(data_dict_)
 print(len(data_dict_list_), "graphs generated from data")
 
@@ -681,20 +693,20 @@ print(len(data_dict_list_), "graphs generated from data")
 
 from sklearn.preprocessing import OneHotEncoder
 
-'''Convert the dict into a tf.Example then use a proto_buffer to 
+'''Convert the dict into a tf.Example then use a proto_buffer to
 serialize it into a compatible format for TFRecords'''
 
 def create_tf_example(graph_dict=None, max_hits=None, max_tracks=None, set_one_hot_labels=False):
     """
     :param graph_dict: dictionary with each key representing a feature vector
-    :param labels: list with 
+    :param labels: list with
     Creates a tf.Example message ready to be written to a file.
     """
     one_hot_encoder = OneHotEncoder(handle_unknown='ignore')
-    
+
     if max_hits is None:
         max_hits = 3600
-    
+
     if graph_dict is None:
         raise ValueError("No Rechit Feature Matrix provided")
 
@@ -718,14 +730,14 @@ def create_tf_example(graph_dict=None, max_hits=None, max_tracks=None, set_one_h
             # Eliminate the first bits of the data (these are definitely rechits)
             # The last part of the data is the tracks and we do not want to eliminate those
             # Since they are useful as 'centroids' for the clustering
-            padded_data = original_data[-event_data_size:, :]
+            padded_data = original_data[-max_hits:, :]
     else:
         raise ValueError("Key 'data' not found in rechit data dictionary")
-    
+
     # Handle the labels either separately as one-hot-encoded data or together
     if 'labels' in graph_dict.keys():
         node_labels = graph_dict['labels']
-        
+
         # Zero-pad the labels (in the case of one-hot encoded labels, the '0' label
         # corresponds to noisy points in the cloud)
         if len(node_labels) > max_hits:
@@ -733,14 +745,14 @@ def create_tf_example(graph_dict=None, max_hits=None, max_tracks=None, set_one_h
         else:
             # Pad the data with zeros to ensure the length of data from each event is constant
             padded_labels = np.concatenate((node_labels, np.zeros(max_hits - len(node_labels))))
-        
+
         # Check if one-hot-encoded labels are desired
         if set_one_hot_labels is True:
             if max_tracks is None:
                 # Set default value of maximum tracks
                 # This will add as many dimensions to your data
                 max_tracks = 100
-            
+
             # Create one-hot-encoded representation of the target labels for the data
             target_labels = one_hot_encoder.fit_transform(np.array([padded_labels]).T).toarray()
             # If there are more labels than max_tracks, just cut out the last set of labels
@@ -750,36 +762,36 @@ def create_tf_example(graph_dict=None, max_hits=None, max_tracks=None, set_one_h
                 # Append zero-columns as padding to these data items
                 padding_columns = np.zeros((max_hits, max_tracks-target_labels.shape[1]))
                 target_labels = np.hstack((target_labels, padding_columns))
-        else:            
+        else:
             # Code to store regular labels in a duplicated array for DeepHGCal
             target_labels = np.concatenate((padded_labels[:, None], padded_labels[:, None]), axis = 1)
     else:
         raise ValueError("Key 'labels' not found in rechit data dictionary")
-    
+
     # Once the labels and data is padded and concatenated, finalize the data into a 2D matrix
     final_data = np.hstack((padded_data, target_labels))
     print(final_data.shape)
     # Create a dictionary mapping the feature name to the tf.Example-compatible
     # data type.
     feature_matrix = {}
-        
+
     # We flatten this tensor and convert it into a FloatList that is then serialized
     # Define the tf Feature to wrap the FloatList
     feature_matrix['data'] = tf.train.Feature(float_list=tf.train.FloatList(value=final_data.ravel()))
-        
+
     # Create a Features message using tf.train.Example.
     example_proto = tf.train.Example(features=tf.train.Features(feature=feature_matrix))
     return example_proto.SerializeToString()
 
 
 def _parse_function(example_proto, data_dimensions=None):
-    '''If you would like to read and parse the data stored in TFRecord format, 
+    '''If you would like to read and parse the data stored in TFRecord format,
     refer to the [Dev] Prototyping Graph Neural Networks Notebook'''
     # max_tracks = 100; features = 10
     if data_dimensions is None:
         data_dimensions = (3600, 12)
-        
-    # Create a description of the features to be read from the TFRecord file(s).  
+
+    # Create a description of the features to be read from the TFRecord file(s).
     feature_description = {
     'data': tf.FixedLenFeature(data_dimensions, tf.float32),
     }
