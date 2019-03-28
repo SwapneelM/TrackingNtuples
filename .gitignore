@@ -17,3 +17,7 @@ jan-tfrecords/
 *.txt
 *.DS_Store
 *.idea
+*.out
+*.err
+*.log
+*.tfrecord
