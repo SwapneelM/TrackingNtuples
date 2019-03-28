@@ -16,6 +16,7 @@ with open('batch.sh', 'w') as batch:
 
 . {CONDAPATH}/etc/profile.d/conda.sh
 export PATH={CONDAPATH}/bin:$PATH
+conda deactivate
 
 set -o errexit
 set -o nounset
