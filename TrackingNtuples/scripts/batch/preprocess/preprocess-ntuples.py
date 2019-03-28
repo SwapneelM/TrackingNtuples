@@ -13,6 +13,7 @@ parser.add_argument('infile', help='input file')
 parser.add_argument('outfile', type=str, help='The path to the output where you want to store your tfrecords')
 parser.add_argument('-n', '--n_events', type=int, default=-1, help='number of events to process')
 parser.add_argument('-o', '--offset', type=int, default=-1, help='number of events to skip')
+parser.add_argument('--notonehot', action='store_false', help='do not use one-hot encoded labels')
 args = parser.parse_args()
 
 # ## View the Keys in the Imported Data
@@ -815,7 +816,7 @@ with tf.python_io.TFRecordWriter(args.outfile,
                                  options=tf.python_io.TFRecordOptions(
                                     tf.python_io.TFRecordCompressionType.GZIP)) as tfwriter:
     for event_number_, data_record_ in enumerate(data_dict_list_):
-        tf_example_ = create_tf_example(data_record_)
+        tf_example_ = create_tf_example(data_record_, set_one_hot_labels=args.notonehot)
         tfwriter.write(tf_example_)
 
 
