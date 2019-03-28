@@ -730,7 +730,7 @@ def create_tf_example(graph_dict=None, max_hits=None, max_tracks=None, set_one_h
             # Eliminate the first bits of the data (these are definitely rechits)
             # The last part of the data is the tracks and we do not want to eliminate those
             # Since they are useful as 'centroids' for the clustering
-            padded_data = original_data[-event_data_size:]
+            padded_data = original_data[-event_data_size:, :]
     else:
         raise ValueError("Key 'data' not found in rechit data dictionary")
     
