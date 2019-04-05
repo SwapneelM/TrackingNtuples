@@ -135,12 +135,6 @@ for key in ['stereoHitR', 'stereoHitEta', 'stereoHitPhi', 'monoHitR', 'monoHitEt
 
 # Convert all tracking particle index lists to sets for faster search
 
-mono_tp_idx_set_ = list_to_set(mono_tp_idx_)
-stereo_tp_idx_set_ = list_to_set(stereo_tp_idx_)
-track_tp_idx_set_ = list_to_set(track_tp_idx_)
-print('Timing -- arrays to sets converted in', elapsed(), 's')
-
-
 # ## Preprocessing 2: Add all data into dataframes
 
 # In[117]:
@@ -166,54 +160,54 @@ Adding stereo and mono rechit data into a global dataframe
 :rechit_tp_index_: event-based list of rechit-based list of sets of int (tp_index)
 
 '''
+def unroll(obj_arrs):
+    for obj_arr in obj_arrs:
+        for i in obj_arr:
+            for j in i:
+                yield j
+
 def create_global_rechit_df(stereo_tp_idx_, mono_tp_idx_, rechit_cartesian_dict_, rechit_polar_dict_):
-    rechit_global_map_ = OrderedDict({'event_id': [], 'rechit_id': [], 'rechit_tp_index': [],
-                                      'track_ids': [], 'match_count': [], 'rechit_local_id': []})
-    rechit_param_global_map_ = OrderedDict({'event_id': [], 'rechit_id':[], 'rechit_x': [], 'rechit_y': [], 'rechit_z': [],
-                                            'rechit_r': [], 'rechit_phi': [], 'rechit_eta': [], 'rechit_local_id': []})
-    global_counter_ = 0
+    nevents = rechit_cartesian_['stereoHitY'].shape[0]
+    mono_map = {
+        'rechit_x'   : rechit_cartesian_dict_['monoHitX'].flatten(),
+        'rechit_y'   : rechit_cartesian_dict_['monoHitY'].flatten(),
+        'rechit_z'   : rechit_cartesian_dict_['monoHitZ'].flatten(),        
+        'rechit_r'   : rechit_polar_dict_['monoHitR'    ].flatten(),
+        'rechit_phi' : rechit_polar_dict_['monoHitPhi'  ].flatten(),
+        'rechit_eta' : rechit_polar_dict_['monoHitEta'  ].flatten(),        
+    }
+    evt_idx = np.arange(nevents, dtype=int)
+    ones = rechit_cartesian_['monoHitY'].ones_like()
+    ones.content = ones.content.astype(int)
+    mono_map['event_id'] = (ones*evt_idx).flatten()
 
-    if len(stereo_tp_idx_) != len(stereo_tp_idx_):
-        raise ValueError('Rechit arrays represent differing event lengths [stereo, mono]:', len(stereo_tp_idx_), len(mono_tp_idx_))
+    stereo_map = {
+        'rechit_x'   : rechit_cartesian_dict_['stereoHitX'].flatten(),
+        'rechit_y'   : rechit_cartesian_dict_['stereoHitY'].flatten(),
+        'rechit_z'   : rechit_cartesian_dict_['stereoHitZ'].flatten(),        
+        'rechit_r'   : rechit_polar_dict_['stereoHitR'    ].flatten(),
+        'rechit_phi' : rechit_polar_dict_['stereoHitPhi'  ].flatten(),
+        'rechit_eta' : rechit_polar_dict_['stereoHitEta'  ].flatten(),        
+    }
+    ones = rechit_cartesian_['stereoHitY'].ones_like()
+    ones.content = ones.content.astype(int)
+    stereo_map['event_id'] = (ones*evt_idx).flatten()
 
-    for event_id_ in range(len(stereo_tp_idx_)):
-        # Count the number of rechits in that event
-        event_rechit_count_ = len(stereo_tp_idx_[event_id_]) + len(mono_tp_idx_[event_id_])
+    rechit_param = df({i : np.concatenate((mono_map[i], stereo_map[i])) for i in mono_map})
+    rechit_param['rechit_id'] = rechit_param.index.values
+    
+    rechit_local_id = np.zeros(rechit_param['rechit_id'].shape[0], dtype=int)
+    for evt_id in range(nevents):
+        mask  = (rechit_param['event_id'] == evt_id).values
+        rechit_local_id[mask] = np.arange(mask.sum(), dtype=int)
 
-        rechit_global_map_['event_id'].extend([event_id_] * event_rechit_count_)
-        # appends SAME instance of [event_id] event_rechit_count_ times
+    rechit_param['rechit_local_id'] = rechit_local_id
 
-        rechit_global_map_['rechit_id'].extend(
-            range(global_counter_, global_counter_ + event_rechit_count_))
-        rechit_global_map_['rechit_tp_index'].extend(stereo_tp_idx_[event_id_])
-        rechit_global_map_['rechit_tp_index'].extend(mono_tp_idx_[event_id_])
-        rechit_global_map_['track_ids'].extend([[] for _ in range(event_rechit_count_)])
-        rechit_global_map_['match_count'].extend([0 for _ in range(event_rechit_count_)])
-        rechit_global_map_['rechit_local_id'].extend(range(event_rechit_count_))
-
-        # Extend the hit_param_global_map_ with rechit parameters
-        rechit_param_global_map_['rechit_id'].extend(
-            range(global_counter_, global_counter_ + event_rechit_count_))
-        rechit_param_global_map_['event_id'].extend([event_id_] * event_rechit_count_)  
-        rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_['stereoHitX'][event_id_])
-        rechit_param_global_map_['rechit_x'].extend(rechit_cartesian_dict_['monoHitX'][event_id_])
-        rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_['stereoHitY'][event_id_])
-        rechit_param_global_map_['rechit_y'].extend(rechit_cartesian_dict_['monoHitY'][event_id_])
-        rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_['stereoHitZ'][event_id_])
-        rechit_param_global_map_['rechit_z'].extend(rechit_cartesian_dict_['monoHitZ'][event_id_])
-        
-        rechit_param_global_map_['rechit_r'].extend(  rechit_polar_dict_['stereoHitR'][event_id_])
-        rechit_param_global_map_['rechit_r'].extend(  rechit_polar_dict_['monoHitR'][event_id_])
-        rechit_param_global_map_['rechit_phi'].extend(rechit_polar_dict_['stereoHitPhi'][event_id_])
-        rechit_param_global_map_['rechit_phi'].extend(rechit_polar_dict_['monoHitPhi'][event_id_])
-        rechit_param_global_map_['rechit_eta'].extend(rechit_polar_dict_['stereoHitEta'][event_id_])
-        rechit_param_global_map_['rechit_eta'].extend(rechit_polar_dict_['monoHitEta'][event_id_])
-        rechit_param_global_map_['rechit_local_id'].extend(range(event_rechit_count_))
-        global_counter_ += event_rechit_count_
-    # Convert dict to dataframe
-    rechit_global_df_ = df.from_dict(rechit_global_map_)
-    rechit_param_global_df_ = df.from_dict(rechit_param_global_map_)
-    return rechit_global_df_, rechit_param_global_df_
+    rechit_param['match_count'] = 0
+    rechit_param['track_ids'] = np.empty((rechit_param.shape[0], 0)).tolist()
+    rechit_param['rechit_tp_index'] = [i for i in unroll((mono_tp_idx_, stereo_tp_idx_))]
+    
+    return rechit_param
 
 # Check Memory Usage of DataFrame
 # print rechit_global_df_.memory_usage(deep=True)
@@ -225,16 +219,21 @@ def create_global_rechit_df(stereo_tp_idx_, mono_tp_idx_, rechit_cartesian_dict_
 
 '''
 Create the Global Rechit Array and Global Rechit Parameters Array'''
-rechit_global_df_uncut_, rechit_param_global_df_uncut_ = create_global_rechit_df(
+rechit_param_global_df_uncut_ = create_global_rechit_df(
     stereo_tp_idx_, mono_tp_idx_, rechit_cartesian_, rechit_polar_)
 #print rechit_global_df_.head(10)
+print('Timing -- Rec-hit DF created in ', elapsed(), 's')
+## rechit_param_global_df_uncut_ = rechit_param_global_df_uncut_.sample(frac=1).reset_index(drop=True)
+## print('Timing -- Rec-hit DF shuffling in ', elapsed(), 's')
+rechit_global_df_uncut_ = rechit_param_global_df_uncut_[['event_id', 'rechit_id', 'rechit_tp_index', 'track_ids', 'match_count', 'rechit_local_id']].copy()
+print('Timing -- Rec-hit DF copy in ', elapsed(), 's')
 
 # ## Place the Cuts (create DF for Graph Networks)
 ntp_matched = rechit_global_df_uncut_['rechit_tp_index'].str.len()
 mask = (np.abs(rechit_param_global_df_uncut_['rechit_eta']) < 0.9) & (ntp_matched > 0)
 rechit_global_df_uncut_ = rechit_global_df_uncut_[mask].reset_index()
 rechit_param_global_df_uncut_ = rechit_param_global_df_uncut_[mask].reset_index()
-print('Timing -- Rec-hit DF and selection created in ', elapsed(), 's')
+print('Timing -- Rec-hit DF selection in ', elapsed(), 's')
 
 
 # In[120]:
@@ -588,14 +587,18 @@ max_tracks = 100
 
 
 # In[132]:
-
+## hfname = 'test.h5'
+## track_global_df_.to_hdf(hfname, key='trk_global', mode='w')
+## track_param_global_df_.to_hdf(hfname, key='trk_param', mode='r+')
+## rechit_global_df_.to_hdf(hfname, key='hit_global', mode='r+')
+## rechit_param_global_df_.to_hdf(hfname, key='hit_param', mode='r+')
+## print('Timing -- wrote to hdf in ', elapsed(), 's')
 
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 '''This is the function to create graphs in the form readable by DeepHGCal'''
 
 data_dict_list_ = []
-scaler = StandardScaler()
 
 # Global Features are track-based so they vary in length per-event
 # We find the maximum number of tracks that correspond to max_len of global feature vector
@@ -673,7 +676,6 @@ for event_id_ in range(number_of_events_):
     ]))
 
     node_feature_vector_ = np.vstack((rechit_feature_vector_, track_feature_vector_))
-    node_feature_vector_ = scaler.fit_transform(node_feature_vector_)
 
     # Initialize an array of zeros as labels for the nodes
     # Replace each zero with the int (label) associated with the track to which the rechit belongs
@@ -712,6 +714,7 @@ for event_id_ in range(number_of_events_):
     data_dict_list_.append(data_dict_)
 print(len(data_dict_list_), "graphs generated from data")
 
+print('Timing -- Data to TF-friendly in ', elapsed(), 's')
 
 # In[135]:
 
