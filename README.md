@@ -6,13 +6,13 @@ The detector can be thought of as a huge 'camera' that takes about 40 million 'i
 
 The plots below show how the detector geometry is through extracting the energy signatures from the particles moving through the layers aka 'hits'. They show how the hundreds of thousands of hits (rechits, simHits, stereo rechits) tend to highlight the entire layout of the silicon plates along each layer (1 through 6) on the CMS detector. There are separate plots for inner and outer layers for clarity. 
 
-[Outer Detector Geometry](plot-1)
-[Inner Detector Geometry](plot-2)
-[Not all types of Particles 'hit' all Layers](plot-3)
+[Outer Detector Geometry](plot-1.png)
+[Inner Detector Geometry](plot-2.png)
+[Not all types of Particles 'hit' all Layers](plot-3.png)
 
 To skip some theory, we prototype how we can reconstruct a subset of tracks and a qualitative comparison of how well a random sample of tracks fits the data (rechits). Already with simple clustering in a lower dimensional space, we can see the tracks fitting the data relatively well. Note that these tracks are actually helical in structure, but are represented using a subset of their [track parameters](https://www-cdf.fnal.gov/physics/new/qcd/ue_escan/etaphi.html) (transverse momentum, pseudo-rapidity, azimuthal angle) for the clustering and plotted in 2 dimensions.
 
-[Track Reconstruction using Clustering](scatter-1)
+[Track Reconstruction using Clustering](scatter-1.png)
 
 # TrackingNtuples
 Custom Plugin for the CMSSW Repository
